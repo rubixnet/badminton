@@ -7,82 +7,129 @@ import { Label } from "@/components/ui/label";
 import type { Match } from "@/types/match";
 
 interface MatchFormProps {
-  onSubmit: (match: Match) => void;
-  initialData?: Match;
-  onCancel?: () => void;
+    onSubmit: (match: Match) => void;
+    initialData?: Match;
+    onCancel?: () => void;
 }
 
 export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
-    const [player1, setPlayer1] = useState(initialData?.player1 ?? "");
-    const [player2, setPlayer2] = useState(initialData?.player2 ?? "");
-    const [player1Score, setPlayer1Score] = useState(
-        initialData?.player1Score?.toString() ?? "0",
-    );
-    const [player2Score, setPlayer2Score] = useState(
-        initialData?.player2Score?.toString() ?? "0",
-    );
+    const [team1player1, setTeam1player1] = useState(initialData?.team1player1 ?? "");
+    const [team1player2, setTeam1player2] = useState(initialData?.team1player2 ?? "");
+    const [team2player1, setTeam2player1] = useState(initialData?.team2player1 ?? "");
+    const [team2player2, setTeam2player2] = useState(initialData?.team2player2 ?? "");
+    const [team1score, setTeam1score] = useState(initialData?.team1score.toString() ?? "0");
+    const [team2score, setTeam2score] = useState(initialData?.team2score.toString() ?? "0");
+
+
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         onSubmit({
             id: initialData?.id ?? crypto.randomUUID(),
-            player1: player1.trim() || "Player 1",
-            player2: player2.trim() || "Player 2",
-            player1Score: Number(player1Score) || 0,
-            player2Score: Number(player2Score) || 0,
+            team1player1: team1player1.trim() || "Player 1",
+            team1player2: team1player2.trim() || "Player 2",
+            team2player1: team2player1.trim() || "Player 1",
+            team2player2: team2player2.trim() || "Player 2",
+            team1score: parseInt(team1score) || 0,
+            team2score: parseInt(team2score) || 0,
+
         });
 
         if (!initialData) {
-            setPlayer1("");
-            setPlayer2("");
-            setPlayer1Score("0");
-            setPlayer2Score("0");
+            setTeam1player1("");
+            setTeam1player2("");
+            setTeam2player1("");
+            setTeam2player2("");
+            setTeam1score("0");
+            setTeam2score("0");
         }
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="player1">Player 1</Label>
-                <Input
-                    id="player1"
-                    value={player1}
-                    onChange={(e) => setPlayer1(e.target.value)}
-                    placeholder="Player 1"
-                />
-            </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="player2">Player 2</Label>
-                <Input
-                    id="player2"
-                    value={player2}
-                    onChange={(e) => setPlayer2(e.target.value)}
-                    placeholder="Player 2"
-                />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                    <Label htmlFor="player1Score">Player 1 Score</Label>
+            <h1>Team 1</h1>
+            <div className="space-y-2 flex gap-2">
+                <div>
+                    <Label htmlFor="team1player1">Player 1</Label>
                     <Input
-                        id="player1Score"
-                        type="number"
-                        min={0}
-                        value={player1Score}
-                        onChange={(e) => setPlayer1Score(e.target.value)}
+                        id="team1player1"
+                        value={team1player1}
+                        onChange={(e) => setTeam1player1(e.target.value)}
+                        placeholder="Team 1 Player 1"
                     />
                 </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="player2Score">Player 2 Score</Label>
+                <div>
+                    <Label htmlFor="team1player2">Player 2</Label>
                     <Input
-                        id="player2Score"
+                        id="team1player2"
+                        value={team1player2}
+                        onChange={(e) => setTeam1player2(e.target.value)}
+                        placeholder="Team 1 Player 2"
+                    />
+                </div>
+
+
+
+
+            </div>
+
+
+
+            <div className="grid grid-cols-2 gap-3">
+
+
+                <div className="space-y-2">
+                    <Label htmlFor="team1score">Team 1 Score</Label>
+                    <Input
+                        id="team1score"
                         type="number"
                         min={0}
-                        value={player2Score}
-                        onChange={(e) => setPlayer2Score(e.target.value)}
+                        value={team1score}
+                        onChange={(e) => setTeam1score(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            <h1>Team 2</h1>
+            <div className="space-y-2 flex gap-2">
+                <div>
+                    <Label htmlFor="team2player1">Player 1</Label>
+                    <Input
+                        id="team2player1"
+                        value={team2player1}
+                        onChange={(e) => setTeam2player1(e.target.value)}
+                        placeholder="Team 2 Player 1"
+                    />
+                </div>
+
+                <div>
+                    <Label htmlFor="team2player2">Player 2</Label>
+                    <Input
+                        id="team2player2"
+                        value={team2player2}
+                        onChange={(e) => setTeam2player2(e.target.value)}
+                        placeholder="Team 2 Player 2"
+                    />
+                </div>
+
+
+
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+
+
+                <div className="space-y-2">
+                    <Label htmlFor="team2score">Team 2 Score</Label>
+                    <Input
+                        id="team2score"
+                        type="number"
+                        min={0}
+                        value={team2score}
+                        onChange={(e) => setTeam2score(e.target.value)}
                     />
                 </div>
             </div>

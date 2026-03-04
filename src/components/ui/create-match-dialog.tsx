@@ -23,10 +23,10 @@ export function CreateMatchDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="p-0 max-h-[90vh] overflow-y-auto">
-                <DialogHeader className="p-6 pb-0">
+                {/* <DialogHeader className="p-6 pb-0">
                     <DialogTitle>Add Match</DialogTitle>
-                </DialogHeader>
-                <div className="p-6 pt-4">
+                </DialogHeader> */}
+                   <div className="p-6 pt-4">
                     <MatchForm onSubmit={onMatchCreated} onCancel={() => onOpenChange(false)} />
                 </div>
             </DialogContent>
