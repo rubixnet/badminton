@@ -25,6 +25,11 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
+        if (parseInt(team1score) === parseInt(team2score)) {
+            alert("Team 1 and Team 2 cannot have the same score");
+            return;
+        }
+
         onSubmit({
             id: initialData?.id ?? crypto.randomUUID(),
             team1player1: team1player1.trim() || "Player 1",
@@ -70,10 +75,6 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
                         placeholder="Team 1 Player 2"
                     />
                 </div>
-
-
-
-
             </div>
 
 
