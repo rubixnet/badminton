@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Match } from "@/types/match";
+import { Toast } from "@base-ui/react";
+import { toastManager } from "@/components/ui/toast"
 
 interface MatchFormProps {
     onSubmit: (match: Match) => void;
@@ -20,13 +22,21 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
     const [team1score, setTeam1score] = useState(initialData?.team1score.toString() ?? "0");
     const [team2score, setTeam2score] = useState(initialData?.team2score.toString() ?? "0");
 
-
-
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (parseInt(team1score) === parseInt(team2score)) {
-            alert("Team 1 and Team 2 cannot have the same score");
+        const team1ScoreNum = parseInt(team1score);
+        const team2ScoreNum = parseInt(team2score);
+
+
+        if (team1ScoreNum === team2ScoreNum) {
+            toastManager.add({
+            description: "There was a problem with your request.",
+            title: "Uh oh! Something went wrong.",
+            type: "error",
+            });
+
+            alert("Team 1 and Team 2 cannot have the same score.");
             return;
         }
 
@@ -36,9 +46,8 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
             team1player2: team1player2.trim() || "Player 2",
             team2player1: team2player1.trim() || "Player 1",
             team2player2: team2player2.trim() || "Player 2",
-            team1score: parseInt(team1score) || 0,
-            team2score: parseInt(team2score) || 0,
-
+            team1score: team1ScoreNum,
+            team2score: team2ScoreNum,
         });
 
         if (!initialData) {
