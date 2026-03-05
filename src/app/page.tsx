@@ -36,16 +36,36 @@ export default function Page() {
 
   const sortedMatches = matches; // placeholder
 
-  const handleMatchCreated = (match: Match) => {
-    setMatches((prev) => [match, ...prev]);
-  };
+  // submit to back instead  rendering client side
 
-  return (
-    <div className="min-h-screen">
-      <Navbar onMatchCreated={handleMatchCreated} />
-      <main className="max-w-6xl mx-auto p-0 space-y-6">
-        <MatchList matches={sortedMatches} />
-      </main>
-    </div>
-  );
+  const handleMatchCreated = async (match: Match) => {
+    try {
+      const response = await fetch('/api/matches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(match)
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMatches((prev) => [data.match, ...prev])
+      }
+      else {
+        console.error('Failed to create match');
+
+      }
+    } catch (error) {
+      console.error('error creating match:', error)
+    }
+  }
+
+return (
+  <div className="min-h-screen">
+    <Navbar onMatchCreated={handleMatchCreated} />
+    <main className="max-w-6xl mx-auto p-0 space-y-6">
+      <MatchList matches={sortedMatches} />
+    </main>
+  </div>
+);
 }

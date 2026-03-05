@@ -15,12 +15,12 @@ interface MatchFormProps {
 }
 
 export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
-    const [team1player1, setTeam1player1] = useState(initialData?.team1player1 ?? "");
-    const [team1player2, setTeam1player2] = useState(initialData?.team1player2 ?? "");
-    const [team2player1, setTeam2player1] = useState(initialData?.team2player1 ?? "");
-    const [team2player2, setTeam2player2] = useState(initialData?.team2player2 ?? "");
-    const [team1score, setTeam1score] = useState(initialData?.team1score.toString() ?? "0");
-    const [team2score, setTeam2score] = useState(initialData?.team2score.toString() ?? "0");
+    const [team1player1, setTeam1player1] = useState("");
+    const [team1player2, setTeam1player2] = useState("");
+    const [team2player1, setTeam2player1] = useState("");
+    const [team2player2, setTeam2player2] = useState("");
+    const [team1score, setTeam1score] = useState("0");
+    const [team2score, setTeam2score] = useState("0");
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -31,9 +31,9 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
 
         if (team1ScoreNum === team2ScoreNum) {
             toastManager.add({
-            description: "There was a problem with your request.",
-            title: "Uh oh! Something went wrong.",
-            type: "error",
+                description: "There was a problem with your request.",
+                title: "Uh oh! Something went wrong.",
+                type: "error",
             });
 
             alert("Team 1 and Team 2 cannot have the same score.");
@@ -42,12 +42,21 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
 
         onSubmit({
             id: initialData?.id ?? crypto.randomUUID(),
-            team1player1: team1player1.trim() || "Player 1",
-            team1player2: team1player2.trim() || "Player 2",
-            team2player1: team2player1.trim() || "Player 1",
-            team2player2: team2player2.trim() || "Player 2",
-            team1score: team1ScoreNum,
-            team2score: team2ScoreNum,
+            createdAt: new Date().toISOString(),
+            team1: {
+                score: team1ScoreNum,
+                players: [{
+                    team1player1: team1player1.trim() || "Player 1",
+                    team1player2: team1player2.trim() || "Player 2",
+                }]
+            },
+            team2: {
+                score: team2ScoreNum,
+                players: [{
+                    team2player1: team2player1.trim() || "Player 1",
+                    team2player2: team2player2.trim() || "Player 2",
+                }]
+            },
         });
 
         if (!initialData) {

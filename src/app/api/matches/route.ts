@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGoogleSheetsClient } from '@/lib/google-sheets';
 import type { Match } from '@/types/match';
-import { start } from 'repl';
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = "Sheet1";
 
 export async function GET(request: NextRequest) {
-    try (
+    try {
         if (!SHEET_ID) {
             console.error("missing google sheet id");
             return NextResponse.json({ error: "Google Sheet ID is not configured" }, { status: 500 });
@@ -37,7 +36,7 @@ export async function GET(request: NextRequest) {
 
 
     const endIndex = totalRows - (page - 1) * limit
-    const startIndex = endIndex - limit + 1
+    let startIndex = endIndex - limit + 1
 
     // maths for above in google sheets
     // Data at row 2. 1 is for name of the file
@@ -51,7 +50,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ matches: [], total: totalRows - 1, page, totalPages });
     }
 
-    const range = `${SHEET_NAME}!A${startIndex}:E${endIndex}`;
+    const range = `${SHEET_NAME}!A${startIndex}:H${endIndex}`;
 
     const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SHEET_ID,
@@ -64,14 +63,15 @@ export async function GET(request: NextRequest) {
         id: row[0],
         createdAt: row[1], // to add this in submit form
         team1 : {
-            score: parseInt(row[3]) || 0,
+            score: parseInt(row[2]) || 0,
             players: [
-                { team1player1: row[5], team1player2: row[7] },
+                { team1player1: row[3], team1player2: row[4] },
             ]
+        },
         team2 : {
-            score: parseInt(row[4]) || 0,
+            score: parseInt(row[5]) || 0,
             players: [
-                { team2player1: row[9], team2player2: row[11] },
+                { team2player1: row[6], team2player2: row[7] },
             ]
         
         }
@@ -79,30 +79,39 @@ export async function GET(request: NextRequest) {
     }))
 
     return NextResponse.json({ matches, total: dataRows, page, totalPages });
+    } catch (error) {
+        console.error('Error fetching matches:', error);
+        return NextResponse.json({ error: 'Failed to fetch matches' }, { status: 500 });
     }
+}
 
 
 export async function POST(request: NextRequest) {
-    const body = await request.json();
-    const sheets = await getGoogleSheetsClient();
+    try {
+        const body = await request.json();
+        const sheets = await getGoogleSheetsClient();
 
-    const match = {
-        id: `match-${Date.now()}`,
-        createdAt: body.createdAt,
-        team1 : body.team1,
-        team2 : body.team2,
-        winner: { "1": "team1", "-1": "team2" }[Math.sign(body.team1.score - body.team2.score)]
-    }; 
+        const match = {
+            id: `match-${Date.now()}`,
+            createdAt: body.createdAt,
+            team1 : body.team1,
+            team2 : body.team2,
+            winner: { "1": "team1", "-1": "team2" }[Math.sign(body.team1.score - body.team2.score)]
+        }; 
 
-    const values = [[match.id, match.createdAt, match.team1.score, match.team1.players[0].team1player1, match.team1.players[0].team1player2, match.team2.score, match.team2.players[0].team2player1, match.team2.players[0].team2player2]];
+        const values = [[match.id, match.createdAt, match.team1.score, match.team1.players[0].team1player1, match.team1.players[0].team1player2, match.team2.score, match.team2.players[0].team2player1, match.team2.players[0].team2player2]];
 
-    await sheets.spreadsheets.values.append({
-        spreadsheetId: SHEET_ID,
-        range: `${SHEET_NAME}!A:N`,
-        valueInputOption: "RAW",
-        requestBody: { values}
-    });
+        await sheets.spreadsheets.values.append({
+            spreadsheetId: SHEET_ID,
+            range: `${SHEET_NAME}!A:H`,
+            valueInputOption: "RAW",
+            requestBody: { values}
+        });
 
-    return NextResponse.json({ match });
+        return NextResponse.json({ match });
+    } catch (error) {
+        console.error('Error creating match:', error);
+        return NextResponse.json({ error: 'Failed to create match' }, { status: 500 });
+    }
 }
 
