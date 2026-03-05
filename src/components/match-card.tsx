@@ -11,9 +11,19 @@ export function MatchCard({ match }: MatchCardProps) {
 
 
 
-    const getTeamInitials = (team: Match["team1"]) => {
-        return team.players.map((player) => player.team1player1[0] + player.team1player2[0])
-    }
+    const getTeamInitials = (team: any) => {
+        // Check for either team1player1 OR team2player1
+        const player1 = team.players[0].team1player1 || team.players[0].team2player1;
+
+        const player2 = team.players[0].team1player2 || team.players[0].team2player2;
+        if (!player1) return "??";
+
+        const name1 = player1.trim().split(" ");
+        const name2 = player2.trim().split(" ");
+
+        return (name1[0].charAt(0).toUpperCase() + (name2[0].charAt(0)).toUpperCase())    
+    };
+
 
     const winningTeam = match.team1.score > match.team2.score ? "team1" : "team2";
     const winningTeamInitials = winningTeam === "team1" ? getTeamInitials(match.team1) : getTeamInitials(match.team2);
@@ -27,7 +37,7 @@ export function MatchCard({ match }: MatchCardProps) {
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col items-center gap-2 w-20">
                         <div className="w-12 h-12 rounded-full flex items-center justify-center bg-primary-10 text-primary text-lg font-bold ring-1 ring-border">
-                            {getTeamInitials(match.team1).join("")}
+                            {getTeamInitials(match.team1)}
                         </div>
                     </div>
 
@@ -45,7 +55,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
                     <div className="flex-flex-col items-center gap-2 w-20">
                         <div className="w-12 h-12 rounded-full flex items-center justify-center bg-primary-10 text-primary text-lg font-old ring-1 ring-border">
-                            {getTeamInitials(match.team2).join("")}
+                            {getTeamInitials(match.team2)}
                         </div>
                     </div>
 
