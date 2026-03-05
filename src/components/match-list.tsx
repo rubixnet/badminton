@@ -2,39 +2,73 @@
 
 import type { Match } from "@/types/match";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "./ui/skeleton";
+import { MatchCard } from "./match-card";
+import { is } from "react-day-picker/locale";
+
+
 
 interface MatchListProps {
     matches: Match[]
+    isLoading?: boolean;
+    loadingCount?: number;
 }
 
-export function MatchList({ matches }: MatchListProps) {
+function SkeletonMatchCard() {
     return (
-        <div className="space-y-4 px-4 pb-6">
-            {matches.map((match) => (
-                <Card key={match.id}>
-                    <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="text-center">
-                                <div className="font-semibold">
-                                    {match.team1.players[0].team1player1}{match.team1.players[0].team1player2 ? ` & ${match.team1.players[0].team1player2}` : ""}
-                                </div>
-                                <div className="text-2xl font-bold text-primary">
-                                    {match.team1.score}
-                                </div>
-                            </div>
-                            <div className="text-muted-foreground font-medium">vs</div>
-                            <div className="text-center">
-                                <div className="font-semibold">
-                                    {match.team2.players[0].team2player1}{match.team2.players[0].team2player2 ? ` & ${match.team2.players[0].team2player2}` : ""}
-                                </div>
-                                <div className="text-2xl font-bold text-primary">
-                                    {match.team2.score}
-                                </div>
-                            </div>
+        <Card>
+            <div>
+                <div>
+                    <div>
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                    </div>
+
+                    <div>
+                        <div>
+                            <Skeleton className="" />
                         </div>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
+                        <div>
+                            <Skeleton className="h-6 w-16" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <Skeleton className="h-6 w-8" />
+                    </div>
+                </div>
+                <div>
+                    <Skeleton />
+                </div>
+            </div>
+        </Card>
+
     )
+}
+
+export function MatchList({ matches, isLoading = false, loadingCount = 0 }: MatchListProps) {
+    if (isLoading && matches.length === 0) {
+        return (
+            <div>
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <SkeletonMatchCard key={i} />
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            {matches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+            ))}
+            
+            {isLoading && loadingCount > 0 && (
+                <>
+                {Array.from({length: loadingCount}).map((_, i) => (
+                    <SkeletonMatchCard key={i} />
+                ))}
+                </>
+            )}
+        </div>
+    );
 }
