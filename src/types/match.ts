@@ -1,19 +1,25 @@
+export interface Player {
+    name: string;
+    bonusPoints: number;
+}
+
+export interface Team {
+    players: Player[];
+    score: number;
+}
+
+export interface Checkpoint {
+    team1Score: number;
+    team2Score: number;
+    note?: string;
+    timestamp: string;
+}
+
 export interface Match {
     id: string;
+    team1: Team;
+    team2: Team;
+    checkpoints: Checkpoint[];
     createdAt: string;
-    team1: {
-        score: number;
-        players: {
-            team1player1: string;
-            team1player2: string;
-        }[];
-    };
-    team2: {
-        score: number;
-        players: {
-            team2player1: string;
-            team2player2: string;
-        }[];
-    };
-    winner?: string;
+    winner?: "team1" | "team2" | "draw";
 }
