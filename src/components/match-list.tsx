@@ -1,6 +1,7 @@
 "use client";
 
 import type { Match } from "@/types/match";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface MatchListProps {
     matches: Match[]
@@ -8,12 +9,32 @@ interface MatchListProps {
 
 export function MatchList({ matches }: MatchListProps) {
     return (
-        <ul className="space-y-2 px-4 pb-6">
+        <div className="space-y-4 px-4 pb-6">
             {matches.map((match) => (
-                <li key={match.id} className="border rounded-md p-3">
-                    {match.team1player1} {match.team1player2} ({match.team1score}) vs {match.team2player1} {match.team2player2} ({match.team2score})   
-                </li>
+                <Card key={match.id}>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="text-center">
+                                <div className="font-semibold">
+                                    {match.team1player1} & {match.team1player2}
+                                </div>
+                                <div className="text-2xl font-bold text-primary">
+                                    {match.team1score}
+                                </div>
+                            </div>
+                            <div className="text-muted-foreground font-medium">vs</div>
+                            <div className="text-center">
+                                <div className="font-semibold">
+                                    {match.team2player1} & {match.team2player2}
+                                </div>
+                                <div className="text-2xl font-bold text-primary">
+                                    {match.team2score}
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             ))}
-        </ul>
+        </div>
     )
 }
