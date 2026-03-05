@@ -7,21 +7,22 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match }: MatchCardProps) {
-
-
-
-
     const getTeamInitials = (team: any) => {
         // Check for either team1player1 OR team2player1
         const player1 = team.players[0].team1player1 || team.players[0].team2player1;
-
         const player2 = team.players[0].team1player2 || team.players[0].team2player2;
+
         if (!player1) return "??";
 
         const name1 = player1.trim().split(" ");
-        const name2 = player2.trim().split(" ");
+        const initials = name1[0].charAt(0).toUpperCase();
 
-        return (name1[0].charAt(0).toUpperCase() + (name2[0].charAt(0)).toUpperCase())    
+        if (player2) {
+            const name2 = player2.trim().split(" ");
+            return initials + name2[0].charAt(0).toUpperCase();
+        }
+
+        return initials;
     };
 
 
@@ -32,7 +33,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
     return (
 
-        <Card>
+        <Card className="rounded-none">
             <div className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col items-center gap-2 w-20">
