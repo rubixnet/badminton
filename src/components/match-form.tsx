@@ -45,17 +45,21 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
             createdAt: new Date().toISOString(),
             team1: {
                 score: team1ScoreNum,
-                players: [{
-                    team1player1: team1player1.trim() || "Player 1",
-                    team1player2: team1player2.trim() || "Player 2",
-                }]
+                players: [
+                    {
+                        team1player1: team1player1,
+                        ...(team1player2 ? { team1player2: team1player2 } : {})
+                    }
+                ] as any
             },
             team2: {
                 score: team2ScoreNum,
-                players: [{
-                    team2player1: team2player1.trim() || "Player 1",
-                    team2player2: team2player2.trim() || "Player 2",
-                }]
+                players: [
+                    {
+                        team2player1: team2player1,
+                        ...(team2player2 ? { team2player2: team2player2 } : {})
+                    }
+                ] as any
             },
         });
 
@@ -77,6 +81,8 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
                 <div>
                     <Label htmlFor="team1player1">Player 1</Label>
                     <Input
+                        required
+                        minLength={2}
                         id="team1player1"
                         value={team1player1}
                         onChange={(e) => setTeam1player1(e.target.value)}
@@ -87,7 +93,9 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
                 <div>
                     <Label htmlFor="team1player2">Player 2</Label>
                     <Input
+
                         id="team1player2"
+                        minLength={2}
                         value={team1player2}
                         onChange={(e) => setTeam1player2(e.target.value)}
                         placeholder="Team 1 Player 2"
@@ -117,6 +125,8 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
                 <div>
                     <Label htmlFor="team2player1">Player 1</Label>
                     <Input
+                        required
+                        minLength={2}
                         id="team2player1"
                         value={team2player1}
                         onChange={(e) => setTeam2player1(e.target.value)}
@@ -128,6 +138,7 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
                     <Label htmlFor="team2player2">Player 2</Label>
                     <Input
                         id="team2player2"
+                        minLength={2}
                         value={team2player2}
                         onChange={(e) => setTeam2player2(e.target.value)}
                         placeholder="Team 2 Player 2"

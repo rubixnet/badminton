@@ -16,7 +16,7 @@ export function MatchList({ matches }: MatchListProps) {
                         <div className="flex items-center justify-between">
                             <div className="text-center">
                                 <div className="font-semibold">
-                                    {match.team1.players[0].team1player1} & {match.team1.players[0].team1player2    }
+                                    {match.team1.players[0].team1player1}{match.team1.players[0].team1player2 ? ` & ${match.team1.players[0].team1player2}` : ""}
                                 </div>
                                 <div className="text-2xl font-bold text-primary">
                                     {match.team1.score}
@@ -25,7 +25,7 @@ export function MatchList({ matches }: MatchListProps) {
                             <div className="text-muted-foreground font-medium">vs</div>
                             <div className="text-center">
                                 <div className="font-semibold">
-                                    {match.team2.players[0].team2player1} & {match.team2.players[0].team2player2}
+                                    {match.team2.players[0].team2player1}{match.team2.players[0].team2player2 ? ` & ${match.team2.players[0].team2player2}` : ""}
                                 </div>
                                 <div className="text-2xl font-bold text-primary">
                                     {match.team2.score}

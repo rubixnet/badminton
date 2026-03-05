@@ -24,30 +24,20 @@ export async function GET(request: NextRequest) {
         range: `${SHEET_NAME}!A:A`
     });
     
-    const totalRows = countResponse.data.values ? countResponse.data.values.length - 1 : 0; // Subtract header row
+    const totalRows = countResponse.data.values ? countResponse.data.values.length : 0
     
     if (totalRows <= 1) {
         return NextResponse.json({ matches: [], total: 0, page, totalPages: 0 });
     }
 
-
     const dataRows = totalRows - 1
-    const totalPages = Math.ceil(dataRows / limit); // to round up as this be something like x / 20 
+    const totalPages = Math.ceil(dataRows / limit);
 
+    const startIndex = 2 + (page - 1) * limit
+    const endIndex = Math.min(startIndex + limit - 1, totalRows)
 
-    const endIndex = totalRows - (page - 1) * limit
-    let startIndex = endIndex - limit + 1
-
-    // maths for above in google sheets
-    // Data at row 2. 1 is for name of the file
-    // Total data rows = totalRows - 1 ()
-    // Latest match is at row `totalRows`
-    // Page 1 (limit 20): Rows (totalRows - 19) to totalRows
-
-    if (startIndex < 2) startIndex = 2 // not be low header row
-
-    if (endIndex < 2) {
-        return NextResponse.json({ matches: [], total: totalRows - 1, page, totalPages });
+    if (startIndex > totalRows) {
+        return NextResponse.json({ matches: [], total: dataRows, page, totalPages });
     }
 
     const range = `${SHEET_NAME}!A${startIndex}:H${endIndex}`;
@@ -57,26 +47,35 @@ export async function GET(request: NextRequest) {
         range,
     })
 
-    const rows = response.data.values || [];
+    const rows = (response.data.values || []).reverse();
 
-    const matches: Match[] = rows.map((row: string[]) => ({
-        id: row[0],
-        createdAt: row[1], // to add this in submit form
-        team1 : {
-            score: parseInt(row[2]) || 0,
-            players: [
-                { team1player1: row[3], team1player2: row[4] },
-            ]
-        },
-        team2 : {
-            score: parseInt(row[5]) || 0,
-            players: [
-                { team2player1: row[6], team2player2: row[7] },
-            ]
-        
-        }
+    const matches: Match[] = rows.map((row: string[]) => {
+        const team1player2 = row[4]?.trim();
+        const team2player2 = row[7]?.trim();
 
-    }))
+        return {
+            id: row[0],
+            createdAt: row[1],
+            team1: {
+                score: parseInt(row[2]) || 0,
+                players: [
+                    {
+                        team1player1: row[3],
+                        ...(team1player2 ? { team1player2 } : {})
+                    },
+                ] as any
+            },
+            team2: {
+                score: parseInt(row[5]) || 0,
+                players: [
+                    {
+                        team2player1: row[6],
+                        ...(team2player2 ? { team2player2 } : {})
+                    },
+                ] as any
+            }
+        };
+    })
 
     return NextResponse.json({ matches, total: dataRows, page, totalPages });
     } catch (error) {

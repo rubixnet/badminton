@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { MatchList } from "@/components/match-list";
 import type { Match } from "@/types/match";
 import Navbar from "@/components/navbar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Page() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    fetchMatches(1);
+  }, []);
 
   const fetchMatches = async (pageNumber: number, isBackground = false): Promise<Match[]> => {
     try {
