@@ -1,14 +1,141 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Plus, X, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Match } from "@/types/match";
+
+const BONUS_PREFERENCE_STORAGE_KEY = "badminton:bonus-enabled";
+
+const layoutTransition = {
+  type: "spring",
+  stiffness: 250,
+  damping: 28,
+  mass: 0.9,
+} as const;
+
+const sectionSwapTransition = {
+  duration: 0.34,
+  ease: [0.22, 1, 0.36, 1],
+} as const;
+
+const bonusFieldTransition = {
+  duration: 0.28,
+  ease: [0.32, 0.72, 0, 1],
+} as const;
+
+interface AnimatedPlayerRowProps {
+  label: string;
+  playerId: string;
+  playerValue: string;
+  onPlayerChange: (value: string) => void;
+  bonusId: string;
+  bonusValue: string;
+  onBonusChange: (value: string) => void;
+  required?: boolean;
+  showBonus: boolean;
+  animateBonusField?: boolean;
+}
+
+function AnimatedPlayerRow({
+  label,
+  playerId,
+  playerValue,
+  onPlayerChange,
+  bonusId,
+  bonusValue,
+  onBonusChange,
+  required = false,
+  showBonus,
+  animateBonusField = true,
+}: AnimatedPlayerRowProps) {
+  return (
+    <div className="flex items-end gap-2">
+      <motion.div
+        layout
+        transition={layoutTransition}
+        className={showBonus ? "flex-[0.65]" : "flex-1"}
+      >
+        <Label htmlFor={playerId} className="font-semibold text-[13px]">
+          {label}
+        </Label>
+        <Input
+          id={playerId}
+          value={playerValue}
+          onChange={(e) =>
+            /^[a-zA-Z\s]*$/.test(e.target.value) && onPlayerChange(e.target.value)
+          }
+          placeholder="Enter name"
+          required={required}
+          className="mt-1 focus-visible:ring-0"
+        />
+      </motion.div>
+
+      {animateBonusField ? (
+        <AnimatePresence initial={false}>
+          {showBonus && (
+            <motion.div
+              key={bonusId}
+              className="flex-[0.35] shrink-0 origin-top-right"
+              initial={{
+                opacity: 0,
+                filter: "blur(10px)",
+                clipPath: "inset(0 0 0 100% round 12px)",
+                scale: 0.98,
+              }}
+              animate={{
+                opacity: 1,
+                filter: "blur(0px)",
+                clipPath: "inset(0 0 0 0 round 12px)",
+                scale: 1,
+              }}
+              exit={{
+                opacity: 0,
+                filter: "blur(10px)",
+                clipPath: "inset(0 0 0 100% round 12px)",
+                scale: 0.98,
+              }}
+              transition={bonusFieldTransition}
+            >
+              <Label htmlFor={bonusId} className="font-semibold text-[13px]">
+                Bonus
+              </Label>
+              <Input
+                id={bonusId}
+                type="number"
+                value={bonusValue}
+                onChange={(e) => onBonusChange(e.target.value)}
+                placeholder="0"
+                className="mt-1 focus-visible:ring-0"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      ) : showBonus ? (
+        <div className="flex-[0.35] shrink-0">
+          <Label htmlFor={bonusId} className="font-semibold text-[13px]">
+            Bonus
+          </Label>
+          <Input
+            id={bonusId}
+            type="number"
+            value={bonusValue}
+            onChange={(e) => onBonusChange(e.target.value)}
+            placeholder="0"
+            className="mt-1 focus-visible:ring-0"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 interface MatchFormProps {
   onSubmit: (match: any) => void;
@@ -16,8 +143,10 @@ interface MatchFormProps {
   onCancel?: () => void;
 }
 
+
 export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
   const { toast } = useToast();
+  const isSmallScreen = useMediaQuery("max-sm");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bonusEnabled, setBonusEnabled] = useState(false);
   const [playerList, setPlayerList] = useState<string[]>([]);
@@ -37,6 +166,8 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
   const [checkpoints, setCheckpoints] = useState<
     Array<{ team1Score: string; team2Score: string; note: string }>
   >([]);
+
+  const compactBonusLayout = isSmallScreen && bonusEnabled;
 
   useEffect(() => {
     // Load existing players from localStorage
@@ -59,6 +190,47 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (initialData) {
+      return;
+    }
+
+    const storedPreference = localStorage.getItem(BONUS_PREFERENCE_STORAGE_KEY);
+    if (storedPreference !== null) {
+      setBonusEnabled(storedPreference === "true");
+    }
+
+    let cancelled = false;
+
+    const loadBonusPreference = async () => {
+      try {
+        const response = await fetch("/api/settings", { cache: "no-store" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const settings = (await response.json()) as { bonusEnabled?: boolean };
+
+        if (!cancelled && typeof settings.bonusEnabled === "boolean") {
+          setBonusEnabled(settings.bonusEnabled);
+          localStorage.setItem(
+            BONUS_PREFERENCE_STORAGE_KEY,
+            String(settings.bonusEnabled),
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load bonus preference:", error);
+      }
+    };
+
+    void loadBonusPreference();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initialData]);
 
   useEffect(() => {
     if (initialData) {
@@ -122,6 +294,21 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
     const updated = [...checkpoints];
     updated[index][field] = value;
     setCheckpoints(updated);
+  };
+
+  const handleBonusToggle = (enabled: boolean) => {
+    setBonusEnabled(enabled);
+    localStorage.setItem(BONUS_PREFERENCE_STORAGE_KEY, String(enabled));
+
+    void fetch("/api/settings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ bonusEnabled: enabled }),
+    }).catch((error) => {
+      console.error("Failed to persist bonus preference:", error);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -216,84 +403,86 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
           <Checkbox
             id="bonus-toggle"
             checked={bonusEnabled}
-            onCheckedChange={(checked) => setBonusEnabled(checked === true)}
+            onCheckedChange={(checked) => handleBonusToggle(checked === true)}
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Label htmlFor="team1-player1" className="font-semibold">
-              Player 1
-            </Label>
-            <Input
-              id="team1-player1"
-              value={team1Player1}
-              onChange={(e) =>
-                /^[a-zA-Z\s]*$/.test(e.target.value) &&
-                setTeam1Player1(e.target.value)
-              }
-              placeholder="Enter name"
-              required
-              className="mt-1 focus-visible:ring-0"
-            />
-          </div>
-          {bonusEnabled && (
-            <div className="w-16 shrink-0">
-              <Label
-                htmlFor="team1-player1-bonus"
-                className="font-semibold text-xs"
-              >
-                Bonus
-              </Label>
-              <Input
-                id="team1-player1-bonus"
-                type="number"
-                value={team1Player1Bonus}
-                onChange={(e) => setTeam1Player1Bonus(e.target.value)}
-                placeholder="0"
-                className="mt-1 focus-visible:ring-0"
+      <motion.div layout transition={layoutTransition} className="overflow-hidden">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {compactBonusLayout ? (
+            <motion.div
+              key="team1-stacked"
+              layout
+              initial={{ opacity: 0, y: 24, scale: 0.985, filter: "blur(12px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -14, scale: 0.985, filter: "blur(10px)" }}
+              transition={sectionSwapTransition}
+              className="space-y-4"
+            >
+              <AnimatedPlayerRow
+                label="Player 1"
+                playerId="team1-player1"
+                playerValue={team1Player1}
+                onPlayerChange={setTeam1Player1}
+                bonusId="team1-player1-bonus"
+                bonusValue={team1Player1Bonus}
+                onBonusChange={setTeam1Player1Bonus}
+                required
+                showBonus
+                animateBonusField={false}
               />
-            </div>
-          )}
-        </div>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Label htmlFor="team1-player2" className="font-semibold">
-              Player 2
-            </Label>
-            <Input
-              id="team1-player2"
-              value={team1Player2}
-              onChange={(e) =>
-                /^[a-zA-Z\s]*$/.test(e.target.value) &&
-                setTeam1Player2(e.target.value)
-              }
-              placeholder="Enter name"
-              className="mt-1 focus-visible:ring-0"
-            />
-          </div>
-          {bonusEnabled && (
-            <div className="w-16 shrink-0">
-              <Label
-                htmlFor="team1-player2-bonus"
-                className="font-semibold text-xs"
-              >
-                Bonus
-              </Label>
-              <Input
-                id="team1-player2-bonus"
-                type="number"
-                value={team1Player2Bonus}
-                onChange={(e) => setTeam1Player2Bonus(e.target.value)}
-                placeholder="0"
-                className="mt-1 focus-visible:ring-0"
+              <AnimatedPlayerRow
+                label="Player 2"
+                playerId="team1-player2"
+                playerValue={team1Player2}
+                onPlayerChange={setTeam1Player2}
+                bonusId="team1-player2-bonus"
+                bonusValue={team1Player2Bonus}
+                onBonusChange={setTeam1Player2Bonus}
+                showBonus
+                animateBonusField={false}
               />
-            </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="team1-grid"
+              layout
+              initial={{ opacity: 0, y: 10, scale: 0.995, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -8, scale: 0.995, filter: "blur(6px)" }}
+              transition={sectionSwapTransition}
+              className="grid grid-cols-2 gap-4"
+            >
+              <AnimatedPlayerRow
+                label="Player 1"
+                playerId="team1-player1"
+                playerValue={team1Player1}
+                onPlayerChange={setTeam1Player1}
+                bonusId="team1-player1-bonus"
+                bonusValue={team1Player1Bonus}
+                onBonusChange={setTeam1Player1Bonus}
+                required
+                showBonus={bonusEnabled}
+              />
+              <AnimatedPlayerRow
+                label="Player 2"
+                playerId="team1-player2"
+                playerValue={team1Player2}
+                onPlayerChange={setTeam1Player2}
+                bonusId="team1-player2-bonus"
+                bonusValue={team1Player2Bonus}
+                onBonusChange={setTeam1Player2Bonus}
+                showBonus={bonusEnabled}
+              />
+            </motion.div>
           )}
-        </div>
-        <div>
-          <Label htmlFor="team1-score" className="font-semibold">
+        </AnimatePresence>
+        <motion.div
+          layout="position"
+          transition={layoutTransition}
+          className={compactBonusLayout ? "mt-5 w-1/2 pr-2" : "mt-4 w-1/2 pr-2"}
+        >
+          <Label htmlFor="team1-score" className="font-semibold text-[13px]">
             Final Score
           </Label>
           <Input
@@ -308,89 +497,88 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
             required
             className="mt-1 focus-visible:ring-0"
           />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-lg uppercase tracking-wide">Team 2</h3>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Label htmlFor="team2-player1" className="font-semibold">
-              Player 1
-            </Label>
-            <Input
-              id="team2-player1"
-              value={team2Player1}
-              onChange={(e) =>
-                /^[a-zA-Z\s]*$/.test(e.target.value) &&
-                setTeam2Player1(e.target.value)
-              }
-              placeholder="Enter name"
-              required
-              className="mt-1 focus-visible:ring-0"
-            />
-          </div>
-          {bonusEnabled && (
-            <div className="w-16 shrink-0">
-              <Label
-                htmlFor="team2-player1-bonus"
-                className="font-semibold text-xs"
-              >
-                Bonus
-              </Label>
-              <Input
-                id="team2-player1-bonus"
-                type="number"
-                value={team2Player1Bonus}
-                onChange={(e) => setTeam2Player1Bonus(e.target.value)}
-                placeholder="0"
-                className="mt-1 focus-visible:ring-0"
+      <motion.div layout transition={layoutTransition} className="overflow-hidden">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {compactBonusLayout ? (
+            <motion.div
+              key="team2-stacked"
+              layout
+              initial={{ opacity: 0, y: 24, scale: 0.985, filter: "blur(12px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -14, scale: 0.985, filter: "blur(10px)" }}
+              transition={sectionSwapTransition}
+              className="space-y-4"
+            >
+              <AnimatedPlayerRow
+                label="Player 1"
+                playerId="team2-player1"
+                playerValue={team2Player1}
+                onPlayerChange={setTeam2Player1}
+                bonusId="team2-player1-bonus"
+                bonusValue={team2Player1Bonus}
+                onBonusChange={setTeam2Player1Bonus}
+                required
+                showBonus
+                animateBonusField={false}
               />
-            </div>
-          )}
-        </div>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Label htmlFor="team2-player2" className="font-semibold">
-              Player 2
-            </Label>
-            <Input
-              id="team2-player2"
-              value={team2Player2}
-              onChange={(e) =>
-                /^[a-zA-Z\s]*$/.test(e.target.value) &&
-                setTeam2Player2(e.target.value)
-              }
-              placeholder="Enter name"
-              className="mt-1 focus-visible:ring-0"
-            />
-          </div>
-          {bonusEnabled && (
-
-
-
-            <div className="w-16 shrink-0">
-              <Label
-                htmlFor="team2-player2-bonus"
-                className="font-semibold text-xs"
-              >
-                Bonus
-              </Label>
-              <Input
-                id="team2-player2-bonus"
-                type="number"
-                value={team2Player2Bonus}
-                onChange={(e) => setTeam2Player2Bonus(e.target.value)}
-                placeholder="0"
-                className="mt-1 focus-visible:ring-0"
+              <AnimatedPlayerRow
+                label="Player 2"
+                playerId="team2-player2"
+                playerValue={team2Player2}
+                onPlayerChange={setTeam2Player2}
+                bonusId="team2-player2-bonus"
+                bonusValue={team2Player2Bonus}
+                onBonusChange={setTeam2Player2Bonus}
+                showBonus
+                animateBonusField={false}
               />
-            </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="team2-grid"
+              layout
+              initial={{ opacity: 0, y: 10, scale: 0.995, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -8, scale: 0.995, filter: "blur(6px)" }}
+              transition={sectionSwapTransition}
+              className="grid grid-cols-2 gap-4"
+            >
+              <AnimatedPlayerRow
+                label="Player 1"
+                playerId="team2-player1"
+                playerValue={team2Player1}
+                onPlayerChange={setTeam2Player1}
+                bonusId="team2-player1-bonus"
+                bonusValue={team2Player1Bonus}
+                onBonusChange={setTeam2Player1Bonus}
+                required
+                showBonus={bonusEnabled}
+              />
+              <AnimatedPlayerRow
+                label="Player 2"
+                playerId="team2-player2"
+                playerValue={team2Player2}
+                onPlayerChange={setTeam2Player2}
+                bonusId="team2-player2-bonus"
+                bonusValue={team2Player2Bonus}
+                onBonusChange={setTeam2Player2Bonus}
+                showBonus={bonusEnabled}
+              />
+            </motion.div>
           )}
-        </div>
-        <div>
-          <Label htmlFor="team2-score" className="font-semibold">
+        </AnimatePresence>
+        <motion.div
+          layout="position"
+          transition={layoutTransition}
+          className={compactBonusLayout ? "mt-5 w-1/2 pr-2" : "mt-4 w-1/2 pr-2"}
+        >
+          <Label htmlFor="team2-score" className="font-semibold text-[13px]">
             Final Score
           </Label>
           <Input
@@ -405,8 +593,8 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
             required
             className="mt-1 focus-visible:ring-0"
           />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -423,7 +611,8 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
             Add
           </Button>
         </div>
-
+        
+        
         {checkpoints.map((checkpoint, index) => (
           <div key={index} className="space-y-3">
             <div className="flex items-center justify-between">

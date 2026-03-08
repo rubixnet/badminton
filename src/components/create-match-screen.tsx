@@ -1,19 +1,18 @@
-"use client"
+"use client";
 
-import { useEffect, useCallback, useRef, useState } from "react";
-import { useRouter } from "next/router";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
+import { MatchForm } from "@/components/match-form";
+import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerContent,
   DrawerDescription,
-  DrawerOverlay,
-  DrawerPortal,
   DrawerTitle,
-} from "@/components/ui/drawer"
+} from "@/components/ui/drawer";
+import { useMobile } from "@/hooks/use-mobile";
 import type { Match } from "@/types/match";
-import { MatchForm } from "@/components/match-form";
 
 const CREATE_MATCH_EVENT = "badminton:match-created";
 const EXIT_DURATION_MS = 280;
@@ -25,10 +24,9 @@ interface CreateMatchScreenProps {
 function getWinner(match: Match) {
   if (match.team1.score > match.team2.score) {
     return "team1" as const;
-
   }
 
-  else return "team2" as const; // there cannot be a draw
+  return "team2" as const;
 }
 
 function createLocalMatch(match: Match): Match {
@@ -36,11 +34,8 @@ function createLocalMatch(match: Match): Match {
     ...match,
     id: match.id || `local_${Date.now()}`,
     winner: match.winner ?? getWinner(match),
-  }
+  };
 }
-
-
-
 
 function persistMatch(match: Match) {
   const stored = localStorage.getItem("badminton_matches");
@@ -63,12 +58,10 @@ function persistMatch(match: Match) {
   );
 }
 
-// asked v0 to crete below fn
-
-export function CreateMatchScreen({
-  overlay = false,
-}: CreateMatchScreenProps) {
+export function CreateMatchScreen({ overlay = false }: CreateMatchScreenProps) {
   const router = useRouter();
+  const isMobile = useMobile();
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
 
@@ -80,7 +73,9 @@ export function CreateMatchScreen({
     setOpen(false);
 
     closeTimeoutRef.current = window.setTimeout(() => {
-      if (overlay) {
+      closeTimeoutRef.current = null;
+
+      if (overlay && window.history.length > 1) {
         router.back();
         return;
       }
@@ -90,17 +85,25 @@ export function CreateMatchScreen({
   }, [overlay, router]);
 
   useEffect(() => {
+    setMounted(true);
     setOpen(true);
 
     return () => {
       if (closeTimeoutRef.current !== null) {
         window.clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
       }
     };
   }, []);
 
+  useEffect(() => {
+    if (mounted && !isMobile) {
+      router.replace("/");
+    }
+  }, [mounted, isMobile, router]);
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
+    if (!nextOpen && open) {
       closeScreen();
     }
   };
@@ -131,6 +134,10 @@ export function CreateMatchScreen({
     closeScreen();
   };
 
+  if (!mounted || !isMobile) {
+    return null;
+  }
+
   return (
     <Drawer
       open={open}
@@ -140,38 +147,33 @@ export function CreateMatchScreen({
       handleOnly={false}
       repositionInputs={false}
     >
-      <DrawerPortal>
-        <DrawerOverlay
-          className={overlay ? "bg-background/70 backdrop-blur-sm" : "bg-background"}
-        />
-        <DrawerContent className="[&>div:first-child]:hidden data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:h-dvh data-[vaul-drawer-direction=bottom]:max-h-dvh data-[vaul-drawer-direction=bottom]:rounded-t-[28px] data-[vaul-drawer-direction=bottom]:border-t-0 flex overflow-hidden bg-background shadow-2xl">
-          <DrawerTitle className="sr-only">Create match</DrawerTitle>
-          <DrawerDescription className="sr-only">
-            Full-screen sheet for entering a badminton match.
-          </DrawerDescription>
+      <DrawerContent className="[&>div:first-child]:hidden data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:h-dvh data-[vaul-drawer-direction=bottom]:max-h-dvh data-[vaul-drawer-direction=bottom]:rounded-t-[28px] data-[vaul-drawer-direction=bottom]:border-t-0 flex overflow-hidden bg-background shadow-2xl">
+        <DrawerTitle className="sr-only">Create match</DrawerTitle>
+        <DrawerDescription className="sr-only">
+          Full-screen sheet for entering a badminton match.
+        </DrawerDescription>
 
-          <div className="supports-backdrop-filter:bg-background/80 sticky top-0 z-10 bg-background/95 px-4 pb-2 pt-2 backdrop-blur">
-            <div className="relative flex min-h-10 items-center justify-center">
-              <div className="h-1.5 w-14 rounded-full bg-muted" />
+        <div className="sticky top-0 z-10 px-4 pb-2 backdrop-blur">
+          <div className="relative flex min-h-10 items-center justify-center">
+            <div className="h-2 w-24 rounded-full bg-muted" />
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-1/2 shrink-0 -translate-y-1/2"
-                onClick={closeScreen}
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-1/2 mt-2 shrink-0 -translate-y-1/2"
+              onClick={closeScreen}
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
           </div>
+        </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
-            <MatchForm onSubmit={handleMatchCreated} onCancel={closeScreen} />
-          </div>
-        </DrawerContent>
-      </DrawerPortal>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+          <MatchForm onSubmit={handleMatchCreated} onCancel={closeScreen} />
+        </div>
+      </DrawerContent>
     </Drawer>
   );
 }
