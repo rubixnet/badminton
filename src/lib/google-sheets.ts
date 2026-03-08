@@ -28,10 +28,9 @@ export async function getGoogleSheetsClient() {
             },
 
             scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-        })
-        const client = await auth.getClient();
+        });
 
-        return google.sheets({ version: "v4", auth: client });
+        return google.sheets({ version: "v4", auth });
     } catch (error: any) {
         if (error.code === "ERR_OSSL_UNSUPPORTED") {
             console.error(

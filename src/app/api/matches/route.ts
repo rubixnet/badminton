@@ -1,116 +1,214 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getGoogleSheetsClient } from '@/lib/google-sheets';
-import type { Match } from '@/types/match';
+import { NextRequest, NextResponse } from "next/server";
+import { getGoogleSheetsClient } from "@/lib/google-sheets";
+import type { Match } from "@/types/match";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = "Sheet1";
 
 export async function GET(request: NextRequest) {
-    try {
-        if (!SHEET_ID) {
-            console.error("missing google sheet id");
-            return NextResponse.json({ error: "Google Sheet ID is not configured" }, { status: 500 });
-        }
+  try {
+    if (!SHEET_ID) {
+      console.error("Missing GOOGLE_SHEET_ID");
+      return NextResponse.json([]);
+    }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
 
     const sheets = await getGoogleSheetsClient();
 
-
+    // First, get the total number of rows to calculate the range
+    // We'll just read column A to be efficient
     const countResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range: `${SHEET_NAME}!A:A`
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A:A`,
     });
-    
-    const totalRows = countResponse.data.values ? countResponse.data.values.length : 0
-    
+
+    const totalRows = countResponse.data.values?.length || 0;
+    // If totalRows is 0 or 1 (header only), return empty
     if (totalRows <= 1) {
-        return NextResponse.json({ matches: [], total: 0, page, totalPages: 0 });
+      return NextResponse.json({ matches: [], total: 0, page, totalPages: 0 });
     }
 
-    const dataRows = totalRows - 1
+    // Calculate range for pagination (fetching from bottom up)
+    // Data starts at row 2.
+    // Total data rows = totalRows - 1
+    // Latest match is at row `totalRows`
+    // Page 1 (limit 20): Rows (totalRows - 19) to totalRows
+
+    const dataRows = totalRows - 1;
     const totalPages = Math.ceil(dataRows / limit);
 
-    const startIndex = 2 + (page - 1) * limit
-    const endIndex = Math.min(startIndex + limit - 1, totalRows)
+    const endIndex = totalRows - (page - 1) * limit;
+    let startIndex = endIndex - limit + 1;
 
-    if (startIndex > totalRows) {
-        return NextResponse.json({ matches: [], total: dataRows, page, totalPages });
+    // Ensure we don't go below row 2
+    if (startIndex < 2) startIndex = 2;
+
+    // If we've gone past the beginning of the data
+    if (endIndex < 2) {
+      return NextResponse.json({
+        matches: [],
+        total: dataRows,
+        page,
+        totalPages,
+      });
     }
 
-    const range = `${SHEET_NAME}!A${startIndex}:H${endIndex}`;
+    const range = `${SHEET_NAME}!A${startIndex}:N${endIndex}`;
 
     const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SHEET_ID,
-        range,
-    })
+      spreadsheetId: SHEET_ID,
+      range,
+    });
 
-    const rows = (response.data.values || []).reverse();
+    const rows = response.data.values || [];
 
-    const matches: Match[] = rows.map((row: string[]) => {
-        const team1player2 = row[4]?.trim();
-        const team2player2 = row[7]?.trim();
+    const matches: Match[] = rows
+      .map((row: string[]) => {
+        try {
+          // Backward compatibility: Check if first column is JSON
+          if (row[0] && row[0].trim().startsWith("{")) {
+            return JSON.parse(row[0]);
+          }
 
-        return {
+          if (!row[0]) return null;
+
+          return {
             id: row[0],
             createdAt: row[1],
+            winner: row[2] as "team1" | "team2" | "draw",
             team1: {
-                score: parseInt(row[2]) || 0,
-                players: [
-                    {
-                        team1player1: row[3],
-                        ...(team1player2 ? { team1player2 } : {})
-                    },
-                ] as any
+              score: parseInt(row[3] || "0"),
+              players: [
+                { name: row[5] || "", bonusPoints: parseInt(row[6] || "0") },
+                ...(row[7]
+                  ? [{ name: row[7], bonusPoints: parseInt(row[8] || "0") }]
+                  : []),
+              ],
             },
             team2: {
-                score: parseInt(row[5]) || 0,
-                players: [
-                    {
-                        team2player1: row[6],
-                        ...(team2player2 ? { team2player2 } : {})
-                    },
-                ] as any
-            }
-        };
-    })
+              score: parseInt(row[4] || "0"),
+              players: [
+                { name: row[9] || "", bonusPoints: parseInt(row[10] || "0") },
+                ...(row[11]
+                  ? [{ name: row[11], bonusPoints: parseInt(row[12] || "0") }]
+                  : []),
+              ],
+            },
+            checkpoints: row[13] ? JSON.parse(row[13]) : [],
+          } as Match;
+        } catch (e) {
+          console.error("Error parsing row:", e);
+          return null;
+        }
+      })
+      .filter((match): match is Match => match !== null)
+      .reverse(); // Reverse to show latest first within the page
 
-    return NextResponse.json({ matches, total: dataRows, page, totalPages });
-    } catch (error) {
-        console.error('Error fetching matches:', error);
-        return NextResponse.json({ error: 'Failed to fetch matches' }, { status: 500 });
-    }
+    return NextResponse.json({
+      matches,
+      total: dataRows,
+      page,
+      totalPages,
+    });
+  } catch (error) {
+    console.error("Error fetching matches:", error);
+    return NextResponse.json({ matches: [], total: 0, page: 1, totalPages: 0 });
+  }
 }
-
 
 export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const sheets = await getGoogleSheetsClient();
-
-        const match = {
-            id: `match-${Date.now()}`,
-            createdAt: body.createdAt,
-            team1 : body.team1,
-            team2 : body.team2,
-            winner: { "1": "team1", "-1": "team2" }[Math.sign(body.team1.score - body.team2.score)]
-        }; 
-
-        const values = [[match.id, match.createdAt, match.team1.score, match.team1.players[0].team1player1, match.team1.players[0].team1player2, match.team2.score, match.team2.players[0].team2player1, match.team2.players[0].team2player2]];
-
-        await sheets.spreadsheets.values.append({
-            spreadsheetId: SHEET_ID,
-            range: `${SHEET_NAME}!A:H`,
-            valueInputOption: "RAW",
-            requestBody: { values}
-        });
-
-        return NextResponse.json({ match });
-    } catch (error) {
-        console.error('Error creating match:', error);
-        return NextResponse.json({ error: 'Failed to create match' }, { status: 500 });
+  try {
+    if (!SHEET_ID) {
+      console.error("Missing GOOGLE_SHEET_ID");
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 },
+      );
     }
-}
 
+    const body = await request.json();
+
+    const sheets = await getGoogleSheetsClient();
+
+    // Check write access
+    const settingsResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!P1`,
+    });
+    const settingsValue = settingsResponse.data.values?.[0]?.[0];
+    if (settingsValue) {
+      try {
+        const settings = JSON.parse(settingsValue);
+        if (settings.writeAccess === false) {
+          return NextResponse.json(
+            { error: "New matches are currently disabled by admin" },
+            { status: 403 },
+          );
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    const match: Match = {
+      id: `match_${Date.now()}`,
+      team1: body.team1,
+      team2: body.team2,
+      checkpoints: body.checkpoints || [],
+      createdAt: body.createdAt || new Date().toISOString(),
+      winner:
+        body.team1.score > body.team2.score
+          ? "team1"
+          : body.team2.score > body.team1.score
+            ? "team2"
+            : "draw",
+    };
+
+    // Save to Google Sheets
+    // A: ID, B: CreatedAt, C: Winner, D: T1Score, E: T2Score
+    // F: T1P1Name, G: T1P1Bonus, H: T1P2Name, I: T1P2Bonus
+    // J: T2P1Name, K: T2P1Bonus, L: T2P2Name, M: T2P2Bonus
+    // N: Checkpoints
+    const values = [
+      [
+        match.id,
+        match.createdAt,
+        match.winner,
+        match.team1.score,
+        match.team2.score,
+        match.team1.players[0]?.name || "",
+        match.team1.players[0]?.bonusPoints || 0,
+        match.team1.players[1]?.name || "",
+        match.team1.players[1]?.bonusPoints || 0,
+        match.team2.players[0]?.name || "",
+        match.team2.players[0]?.bonusPoints || 0,
+        match.team2.players[1]?.name || "",
+        match.team2.players[1]?.bonusPoints || 0,
+        JSON.stringify(match.checkpoints),
+      ],
+    ];
+
+    const range = `${SHEET_NAME}!A:N`;
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range,
+      valueInputOption: "RAW",
+      requestBody: {
+        values,
+      },
+    });
+
+    console.log("Match saved successfully to Google Sheets");
+    return NextResponse.json(match);
+  } catch (error) {
+    console.error("Error creating match:", error);
+    return NextResponse.json(
+      { error: "Failed to create match" },
+      { status: 500 },
+    );
+  }
+}
