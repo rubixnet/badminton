@@ -76,12 +76,8 @@ function TeamSection({
           </motion.div>
         </div>
 
-        <div className="overflow-hidden min-w-0">
-          <motion.div
-            initial={false}
-            animate={{ opacity: compact ? 0 : 1, filter: compact ? "blur(8px)" : "blur(0px)" }}
-            transition={animated ? fadeT : { duration: 0 }}
-          >
+        <div className="flex items-end min-w-0" style={{ transition: animated ? "opacity 0.55s " + CSS_EASE + ", filter 0.55s " + CSS_EASE : "none", opacity: compact ? 0 : 1, filter: compact ? "blur(8px)" : "blur(0px)" }}>
+          <div className="flex-1 min-w-0">
             <Label htmlFor={`${teamId}-p2-top`} className="font-semibold text-[13px]">Player 2</Label>
             <Input
               id={`${teamId}-p2-top`}
@@ -90,6 +86,17 @@ function TeamSection({
               placeholder="Enter name"
               className="mt-1 focus-visible:ring-0"
             />
+          </div>
+          <motion.div
+            initial={false}
+            animate={{ width: bonusEnabled && !compact ? 96 : 0, marginLeft: bonusEnabled && !compact ? 8 : 0, opacity: bonusEnabled && !compact ? 1 : 0 }}
+            transition={animated ? fadeT : { duration: 0 }}
+            className="shrink-0 overflow-hidden"
+          >
+            <div className="w-24">
+              <Label htmlFor={`${teamId}-p2-bonus-top`} className="font-semibold text-[13px]">Bonus</Label>
+              <Input id={`${teamId}-p2-bonus-top`} type="number" value={p2Bonus} onChange={(e) => onP2Bonus(e.target.value)} placeholder="0" className="mt-1 focus-visible:ring-0" />
+            </div>
           </motion.div>
         </div>
       </div>
