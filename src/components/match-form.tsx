@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,125 +14,126 @@ import type { Match } from "@/types/match";
 
 const BONUS_PREFERENCE_STORAGE_KEY = "badminton:bonus-enabled";
 
-const layoutTransition = {
-  type: "spring",
-  stiffness: 250,
-  damping: 28,
-  mass: 0.9,
-} as const;
 
-const sectionSwapTransition = {
-  duration: 0.34,
-  ease: [0.22, 1, 0.36, 1],
-} as const;
+const ease = [0.4, 0, 0.2, 1] as const;   // material standard — smooth in+out
+const fadeT = { duration: 0.55, ease } as const;
+const CSS_EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
+const COL_Template = `grid-template-columns 0.55s ${CSS_EASE}, gap 0.55s ${CSS_EASE}`;
+const ROW_Template = `grid-template-rows 0.55s ${CSS_EASE}`;
 
-const bonusFieldTransition = {
-  duration: 0.28,
-  ease: [0.32, 0.72, 0, 1],
-} as const;
 
-interface AnimatedPlayerRowProps {
-  label: string;
-  playerId: string;
-  playerValue: string;
-  onPlayerChange: (value: string) => void;
-  bonusId: string;
-  bonusValue: string;
-  onBonusChange: (value: string) => void;
-  required?: boolean;
-  showBonus: boolean;
-  animateBonusField?: boolean;
-}
-
-function AnimatedPlayerRow({
-  label,
-  playerId,
-  playerValue,
-  onPlayerChange,
-  bonusId,
-  bonusValue,
-  onBonusChange,
-  required = false,
-  showBonus,
-  animateBonusField = true,
-}: AnimatedPlayerRowProps) {
+function TeamSection({
+  teamId,
+  compact,
+  bonusEnabled,
+  animated,
+  p1, p1Bonus, p2, p2Bonus, score,
+  onP1, onP1Bonus, onP2, onP2Bonus, onScore,
+  p1Required,
+}: {
+  teamId: string;
+  compact: boolean;
+  bonusEnabled: boolean;
+  animated: boolean;
+  p1: string; p1Bonus: string; p2: string; p2Bonus: string; score: string;
+  onP1: (v: string) => void; onP1Bonus: (v: string) => void;
+  onP2: (v: string) => void; onP2Bonus: (v: string) => void;
+  onScore: (v: string) => void;
+  p1Required?: boolean;
+}) {
   return (
-    <div className="flex items-end gap-2">
-      <motion.div
-        layout
-        transition={layoutTransition}
-        className={showBonus ? "flex-[0.65]" : "flex-1"}
+    <div className="flex flex-col">
+      <div
+        className="grid overflow-hidden"
+        style={{
+          gridTemplateColumns: compact ? "1fr 0fr" : "1fr 1fr",
+          gap: compact ? "0px" : "12px",
+          transition: animated ? COL_Template : "none",
+        }}
       >
-        <Label htmlFor={playerId} className="font-semibold text-[13px]">
-          {label}
-        </Label>
-        <Input
-          id={playerId}
-          value={playerValue}
-          onChange={(e) =>
-            /^[a-zA-Z\s]*$/.test(e.target.value) && onPlayerChange(e.target.value)
-          }
-          placeholder="Enter name"
-          required={required}
-          className="mt-1 focus-visible:ring-0"
-        />
-      </motion.div>
+        <div className="flex items-end min-w-0">
+          <div className="flex-1 min-w-0">
+            <Label htmlFor={`${teamId}-p1`} className="font-semibold text-[13px]">Player 1</Label>
+            <Input
+              id={`${teamId}-p1`}
+              value={p1}
+              onChange={(e) => /^[a-zA-Z\s]*$/.test(e.target.value) && onP1(e.target.value)}
+              placeholder="Enter name"
+              required={p1Required}
+              className="mt-1 focus-visible:ring-0"
+            />
+          </div>
+          <motion.div
+            initial={false}
+            animate={{ width: bonusEnabled ? 96 : 0, marginLeft: bonusEnabled ? 8 : 0, opacity: bonusEnabled ? 1 : 0 }}
+            transition={animated ? fadeT : { duration: 0 }}
+            className="shrink-0 overflow-hidden"
+          >
+            <div className="w-24">
+              <Label htmlFor={`${teamId}-p1-bonus`} className="font-semibold text-[13px]">Bonus</Label>
+              <Input id={`${teamId}-p1-bonus`} type="number" value={p1Bonus} onChange={(e) => onP1Bonus(e.target.value)} placeholder="0" className="mt-1 focus-visible:ring-0" />
+            </div>
+          </motion.div>
+        </div>
 
-      {animateBonusField ? (
-        <AnimatePresence initial={false}>
-          {showBonus && (
-            <motion.div
-              key={bonusId}
-              className="flex-[0.35] shrink-0 origin-top-right"
-              initial={{
-                opacity: 0,
-                filter: "blur(10px)",
-                clipPath: "inset(0 0 0 100% round 12px)",
-                scale: 0.98,
-              }}
-              animate={{
-                opacity: 1,
-                filter: "blur(0px)",
-                clipPath: "inset(0 0 0 0 round 12px)",
-                scale: 1,
-              }}
-              exit={{
-                opacity: 0,
-                filter: "blur(10px)",
-                clipPath: "inset(0 0 0 100% round 12px)",
-                scale: 0.98,
-              }}
-              transition={bonusFieldTransition}
-            >
-              <Label htmlFor={bonusId} className="font-semibold text-[13px]">
-                Bonus
-              </Label>
+        <div className="overflow-hidden min-w-0">
+          <motion.div
+            initial={false}
+            animate={{ opacity: compact ? 0 : 1, filter: compact ? "blur(8px)" : "blur(0px)" }}
+            transition={animated ? fadeT : { duration: 0 }}
+          >
+            <Label htmlFor={`${teamId}-p2-top`} className="font-semibold text-[13px]">Player 2</Label>
+            <Input
+              id={`${teamId}-p2-top`}
+              value={p2}
+              onChange={(e) => /^[a-zA-Z\s]*$/.test(e.target.value) && onP2(e.target.value)}
+              placeholder="Enter name"
+              className="mt-1 focus-visible:ring-0"
+            />
+          </motion.div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateRows: compact ? "1fr" : "0fr", transition: animated ? ROW_Template : "none" }}>
+        <div className="overflow-hidden">
+          {/* pt-3 inside overflow-hidden so the gap collapses with the row */}
+          <motion.div
+            initial={false}
+            animate={{ opacity: compact ? 1 : 0, filter: compact ? "blur(0px)" : "blur(8px)" }}
+            transition={animated ? { ...fadeT, delay: compact ? 0.28 : 0 } : { duration: 0 }}
+            className="flex items-end pt-3"
+          >
+            <div className="flex-1 min-w-0">
+              <Label htmlFor={`${teamId}-p2`} className="font-semibold text-[13px]">Player 2</Label>
               <Input
-                id={bonusId}
-                type="number"
-                value={bonusValue}
-                onChange={(e) => onBonusChange(e.target.value)}
-                placeholder="0"
+                id={`${teamId}-p2`}
+                value={p2}
+                onChange={(e) => /^[a-zA-Z\s]*$/.test(e.target.value) && onP2(e.target.value)}
+                placeholder="Enter name"
                 className="mt-1 focus-visible:ring-0"
               />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      ) : showBonus ? (
-        <div className="flex-[0.35] shrink-0">
-          <Label htmlFor={bonusId} className="font-semibold text-[13px]">
-            Bonus
-          </Label>
-          <Input
-            id={bonusId}
-            type="number"
-            value={bonusValue}
-            onChange={(e) => onBonusChange(e.target.value)}
-            placeholder="0"
-            className="mt-1 focus-visible:ring-0"
-          />
+            </div>
+            <div className="w-24 shrink-0 ml-2">
+              <Label htmlFor={`${teamId}-p2-bonus`} className="font-semibold text-[13px]">Bonus</Label>
+              <Input id={`${teamId}-p2-bonus`} type="number" value={p2Bonus} onChange={(e) => onP2Bonus(e.target.value)} placeholder="0" className="mt-1 focus-visible:ring-0" />
+            </div>
+          </motion.div>
         </div>
-      ) : null}
+      </div>
+
+      <div className="mt-3 w-[calc(50%-6px)]">
+        <Label htmlFor={`${teamId}-score`} className="font-semibold text-[13px]">Final Score</Label>
+        <Input
+          id={`${teamId}-score`}
+          type="number"
+          min="0"
+          value={score}
+          onChange={(e) => /^\d*$/.test(e.target.value) && onScore(e.target.value)}
+          placeholder="0"
+          required
+          className="mt-1 focus-visible:ring-0"
+        />
+      </div>
     </div>
   );
 }
@@ -148,7 +149,16 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
   const { toast } = useToast();
   const isSmallScreen = useMediaQuery("max-sm");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bonusEnabled, setBonusEnabled] = useState(false);
+  // Read localStorage synchronously so the first render already has the correct
+  // bonus state — prevents the layout from animating on open.
+  const [bonusEnabled, setBonusEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem(BONUS_PREFERENCE_STORAGE_KEY);
+    return stored === "true";
+  });
+  // Transitions are suppressed until after first mount so the layout renders
+  // in its already-correct state without playing any startup animation.
+  const [animated, setAnimated] = useState(false);
   const [playerList, setPlayerList] = useState<string[]>([]);
 
   const [team1Player1, setTeam1Player1] = useState("");
@@ -296,7 +306,9 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
     setCheckpoints(updated);
   };
 
+  // Enable transitions only on the first user toggle (not on mount/API load)
   const handleBonusToggle = (enabled: boolean) => {
+    if (!animated) setAnimated(true);
     setBonusEnabled(enabled);
     localStorage.setItem(BONUS_PREFERENCE_STORAGE_KEY, String(enabled));
 
@@ -407,194 +419,38 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
           />
         </div>
       </div>
-      <motion.div layout transition={layoutTransition} className="overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false}>
-          {compactBonusLayout ? (
-            <motion.div
-              key="team1-stacked"
-              layout
-              initial={{ opacity: 0, y: 24, scale: 0.985, filter: "blur(12px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -14, scale: 0.985, filter: "blur(10px)" }}
-              transition={sectionSwapTransition}
-              className="space-y-4"
-            >
-              <AnimatedPlayerRow
-                label="Player 1"
-                playerId="team1-player1"
-                playerValue={team1Player1}
-                onPlayerChange={setTeam1Player1}
-                bonusId="team1-player1-bonus"
-                bonusValue={team1Player1Bonus}
-                onBonusChange={setTeam1Player1Bonus}
-                required
-                showBonus
-                animateBonusField={false}
-              />
-              <AnimatedPlayerRow
-                label="Player 2"
-                playerId="team1-player2"
-                playerValue={team1Player2}
-                onPlayerChange={setTeam1Player2}
-                bonusId="team1-player2-bonus"
-                bonusValue={team1Player2Bonus}
-                onBonusChange={setTeam1Player2Bonus}
-                showBonus
-                animateBonusField={false}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="team1-grid"
-              layout
-              initial={{ opacity: 0, y: 10, scale: 0.995, filter: "blur(6px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -8, scale: 0.995, filter: "blur(6px)" }}
-              transition={sectionSwapTransition}
-              className="grid grid-cols-2 gap-4"
-            >
-              <AnimatedPlayerRow
-                label="Player 1"
-                playerId="team1-player1"
-                playerValue={team1Player1}
-                onPlayerChange={setTeam1Player1}
-                bonusId="team1-player1-bonus"
-                bonusValue={team1Player1Bonus}
-                onBonusChange={setTeam1Player1Bonus}
-                required
-                showBonus={bonusEnabled}
-              />
-              <AnimatedPlayerRow
-                label="Player 2"
-                playerId="team1-player2"
-                playerValue={team1Player2}
-                onPlayerChange={setTeam1Player2}
-                bonusId="team1-player2-bonus"
-                bonusValue={team1Player2Bonus}
-                onBonusChange={setTeam1Player2Bonus}
-                showBonus={bonusEnabled}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <motion.div
-          layout="position"
-          transition={layoutTransition}
-          className={compactBonusLayout ? "mt-5 w-1/2 pr-2" : "mt-4 w-1/2 pr-2"}
-        >
-          <Label htmlFor="team1-score" className="font-semibold text-[13px]">
-            Final Score
-          </Label>
-          <Input
-            id="team1-score"
-            type="number"
-            min="0"
-            value={team1Score}
-            onChange={(e) =>
-              /^\d*$/.test(e.target.value) && setTeam1Score(e.target.value)
-            }
-            placeholder="0"
-            required
-            className="mt-1 focus-visible:ring-0"
-          />
-        </motion.div>
-      </motion.div>
+
+      <TeamSection
+        teamId="team1"
+        compact={compactBonusLayout}
+        bonusEnabled={bonusEnabled}
+        animated={animated}
+        p1={team1Player1} p1Bonus={team1Player1Bonus}
+        p2={team1Player2} p2Bonus={team1Player2Bonus}
+        score={team1Score}
+        onP1={setTeam1Player1} onP1Bonus={setTeam1Player1Bonus}
+        onP2={setTeam1Player2} onP2Bonus={setTeam1Player2Bonus}
+        onScore={setTeam1Score}
+        p1Required
+      />
 
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-lg uppercase tracking-wide">Team 2</h3>
       </div>
-      <motion.div layout transition={layoutTransition} className="overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false}>
-          {compactBonusLayout ? (
-            <motion.div
-              key="team2-stacked"
-              layout
-              initial={{ opacity: 0, y: 24, scale: 0.985, filter: "blur(12px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -14, scale: 0.985, filter: "blur(10px)" }}
-              transition={sectionSwapTransition}
-              className="space-y-4"
-            >
-              <AnimatedPlayerRow
-                label="Player 1"
-                playerId="team2-player1"
-                playerValue={team2Player1}
-                onPlayerChange={setTeam2Player1}
-                bonusId="team2-player1-bonus"
-                bonusValue={team2Player1Bonus}
-                onBonusChange={setTeam2Player1Bonus}
-                required
-                showBonus
-                animateBonusField={false}
-              />
-              <AnimatedPlayerRow
-                label="Player 2"
-                playerId="team2-player2"
-                playerValue={team2Player2}
-                onPlayerChange={setTeam2Player2}
-                bonusId="team2-player2-bonus"
-                bonusValue={team2Player2Bonus}
-                onBonusChange={setTeam2Player2Bonus}
-                showBonus
-                animateBonusField={false}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="team2-grid"
-              layout
-              initial={{ opacity: 0, y: 10, scale: 0.995, filter: "blur(6px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -8, scale: 0.995, filter: "blur(6px)" }}
-              transition={sectionSwapTransition}
-              className="grid grid-cols-2 gap-4"
-            >
-              <AnimatedPlayerRow
-                label="Player 1"
-                playerId="team2-player1"
-                playerValue={team2Player1}
-                onPlayerChange={setTeam2Player1}
-                bonusId="team2-player1-bonus"
-                bonusValue={team2Player1Bonus}
-                onBonusChange={setTeam2Player1Bonus}
-                required
-                showBonus={bonusEnabled}
-              />
-              <AnimatedPlayerRow
-                label="Player 2"
-                playerId="team2-player2"
-                playerValue={team2Player2}
-                onPlayerChange={setTeam2Player2}
-                bonusId="team2-player2-bonus"
-                bonusValue={team2Player2Bonus}
-                onBonusChange={setTeam2Player2Bonus}
-                showBonus={bonusEnabled}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <motion.div
-          layout="position"
-          transition={layoutTransition}
-          className={compactBonusLayout ? "mt-5 w-1/2 pr-2" : "mt-4 w-1/2 pr-2"}
-        >
-          <Label htmlFor="team2-score" className="font-semibold text-[13px]">
-            Final Score
-          </Label>
-          <Input
-            id="team2-score"
-            type="number"
-            min="0"
-            value={team2Score}
-            onChange={(e) =>
-              /^\d*$/.test(e.target.value) && setTeam2Score(e.target.value)
-            }
-            placeholder="0"
-            required
-            className="mt-1 focus-visible:ring-0"
-          />
-        </motion.div>
-      </motion.div>
+
+      <TeamSection
+        teamId="team2"
+        compact={compactBonusLayout}
+        bonusEnabled={bonusEnabled}
+        animated={animated}
+        p1={team2Player1} p1Bonus={team2Player1Bonus}
+        p2={team2Player2} p2Bonus={team2Player2Bonus}
+        score={team2Score}
+        onP1={setTeam2Player1} onP1Bonus={setTeam2Player1Bonus}
+        onP2={setTeam2Player2} onP2Bonus={setTeam2Player2Bonus}
+        onScore={setTeam2Score}
+        p1Required
+      />
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -611,8 +467,8 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
             Add
           </Button>
         </div>
-        
-        
+
+
         {checkpoints.map((checkpoint, index) => (
           <div key={index} className="space-y-3">
             <div className="flex items-center justify-between">
