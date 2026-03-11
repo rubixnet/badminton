@@ -8,6 +8,13 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -26,10 +33,13 @@ import {
   Medal,
   Filter,
   ChevronDown,
+  Target,
   Users,
   User,
-  Calculator
+  Calculator,
+  Handshake
 } from "lucide-react";
+import { ConfettiSideCannons } from "@/components/canvas-confetti";
 import {
   BarChart,
   Bar,
@@ -175,13 +185,13 @@ export default function AnalyticsPage() {
 
         // Most Wins
         const mostWins = players
-            .map(name => ({ name, value: playerStats[name].wins }))
+            .map(name => ({ name, value: playerStats[name].wins, matches: playerStats[name].matches }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 10);
 
         // Most Points (Total)
         const mostPoints = players
-            .map(name => ({ name, value: playerStats[name].points }))
+            .map(name => ({ name, value: playerStats[name].points, matches: playerStats[name].matches }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 10);
 
@@ -244,6 +254,162 @@ export default function AnalyticsPage() {
     const singlesMatches = filteredMatches.filter(m => (m.team1.players.length + m.team2.players.length) <= 3);
     const doublesMatches = filteredMatches.filter(m => (m.team1.players.length + m.team2.players.length) === 4);
 
+    // 5. Duo Stats (partnerships)
+    const calculateDuoStats = (subset: Match[]) => {
+        const duoStats: Record<string, { wins: number, losses: number, points: number, matches: number, player1: string, player2: string }> = {};
+        
+        const getDuoKey = (p1: string, p2: string) => {
+            const sorted = [p1.trim(), p2.trim()].sort();
+            return `${sorted[0]} & ${sorted[1]}`;
+        };
+        
+        const getShortDuoKey = (p1: string, p2: string) => {
+            const sorted = [p1.trim()[0]?.toUpperCase() || '', p2.trim()[0]?.toUpperCase() || ''].sort();
+            return `${sorted[0]}${sorted[1]}`;
+        };
+
+        subset.forEach(m => {
+            // Only process doubles matches (2 players per team)
+            if (m.team1.players.length === 2 && m.team2.players.length === 2) {
+                const t1p1 = m.team1.players[0]?.name || '';
+                const t1p2 = m.team1.players[1]?.name || '';
+                const t2p1 = m.team2.players[0]?.name || '';
+                const t2p2 = m.team2.players[1]?.name || '';
+                
+                if (t1p1 && t1p2) {
+                    const key = getDuoKey(t1p1, t1p2);
+                    if (!duoStats[key]) {
+                        const [player1, player2] = [t1p1.trim(), t1p2.trim()].sort();
+                        duoStats[key] = { wins: 0, losses: 0, points: 0, matches: 0, player1, player2 };
+                    }
+                    duoStats[key].matches++;
+                    duoStats[key].points += m.team1.score;
+                    if (m.winner === 'team1') duoStats[key].wins++;
+                    else if (m.winner === 'team2') duoStats[key].losses++;
+                }
+                
+                if (t2p1 && t2p2) {
+                    const key = getDuoKey(t2p1, t2p2);
+                    if (!duoStats[key]) {
+                        const [player1, player2] = [t2p1.trim(), t2p2.trim()].sort();
+                        duoStats[key] = { wins: 0, losses: 0, points: 0, matches: 0, player1, player2 };
+                    }
+                    duoStats[key].matches++;
+                    duoStats[key].points += m.team2.score;
+                    if (m.winner === 'team2') duoStats[key].wins++;
+                    else if (m.winner === 'team1') duoStats[key].losses++;
+                }
+            }
+        });
+
+        const duos = Object.keys(duoStats);
+        
+        // Win Rates (Min 2 matches for duos)
+        const duoWinRates = duos
+            .map(key => {
+                const s = duoStats[key];
+                const shortKey = getShortDuoKey(s.player1, s.player2);
+                return {
+                    name: key,
+                    shortName: shortKey,
+                    value: s.matches >= 2 ? parseFloat(((s.wins / s.matches) * 100).toFixed(1)) : 0,
+                    wins: s.wins,
+                    matches: s.matches,
+                    losses: s.losses,
+                    player1: s.player1,
+                    player2: s.player2
+                };
+            })
+            .filter(d => d.matches >= 2)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10);
+
+        // Average Points (Min 2 matches)
+        const duoAvgPoints = duos
+            .map(key => {
+                const s = duoStats[key];
+                const shortKey = getShortDuoKey(s.player1, s.player2);
+                return {
+                    name: key,
+                    shortName: shortKey,
+                    value: s.matches >= 2 ? parseFloat((s.points / s.matches).toFixed(1)) : 0,
+                    matches: s.matches,
+                    totalPoints: s.points,
+                    player1: s.player1,
+                    player2: s.player2
+                };
+            })
+            .filter(d => d.matches >= 2)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10);
+
+        // Most Wins
+        const duoMostWins = duos
+            .map(key => {
+                const s = duoStats[key];
+                const shortKey = getShortDuoKey(s.player1, s.player2);
+                return { 
+                    name: key, 
+                    shortName: shortKey,
+                    value: s.wins, 
+                    matches: s.matches,
+                    player1: s.player1,
+                    player2: s.player2
+                };
+            })
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10);
+
+        // Most Points
+        const duoMostPoints = duos
+            .map(key => {
+                const s = duoStats[key];
+                const shortKey = getShortDuoKey(s.player1, s.player2);
+                return { 
+                    name: key, 
+                    shortName: shortKey,
+                    value: s.points, 
+                    matches: s.matches,
+                    player1: s.player1,
+                    player2: s.player2
+                };
+            })
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10);
+
+        // Most matches played together
+        const duoMostMatches = duos
+            .map(key => {
+                const s = duoStats[key];
+                const shortKey = getShortDuoKey(s.player1, s.player2);
+                return { 
+                    name: key, 
+                    shortName: shortKey,
+                    value: s.matches,
+                    wins: s.wins,
+                    player1: s.player1,
+                    player2: s.player2
+                };
+            })
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 10);
+
+        // Top duo (by wins)
+        const topDuo = duoMostWins[0] || null;
+
+        return {
+            duoWinRates,
+            duoAvgPoints,
+            duoMostWins,
+            duoMostPoints,
+            duoMostMatches,
+            topDuo,
+            totalDuos: duos.length
+        };
+    };
+
+    const duoData = calculateDuoStats(doublesMatches);
+
     // 4. Player of the Day (Global - based on filtered matches? Or always today? 
     // Usually "Player of the Day" implies TODAY regardless of filter, but if I filter by "Last 7 days", 
     // maybe I want "Player of the Period"? 
@@ -264,6 +430,7 @@ export default function AnalyticsPage() {
     return {
         singles: calculateSubsetStats(singlesMatches),
         doubles: calculateSubsetStats(doublesMatches),
+        duos: duoData,
         playerOfTheDay,
         totalMatches: matches.length // Total all time
     };
@@ -273,11 +440,67 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background overflow-x-auto">
-        <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8">
-            <Skeleton className="h-12 w-full max-w-md mb-8" />
+        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-4">
+          {/* Player of the Day Skeleton */}
+          <Card className="bg-linear-to-r from-primary/10 via-background to-background border-primary/20 cursor-pointer hover:border-primary/50 transition-all group">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-full bg-primary/10" />
+                <div>
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+              </div>
+              <Skeleton className="h-9 w-20" />
+            </CardContent>
+          </Card>
+
+          {/* Controls Skeleton */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
+            <Skeleton className="h-10 w-full md:w-[400px]" />
+            <Skeleton className="h-10 w-full md:w-[200px]" />
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="space-y-8">
+            {/* Top Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32 w-full" />)}
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="border">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-4" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-8 w-12 mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+
+            {/* Charts Skeleton */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card className="border">
+                <CardHeader>
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-[300px] w-full" />
+                </CardContent>
+              </Card>
+              <Card className="border">
+                <CardHeader>
+                  <Skeleton className="h-6 w-40 mb-2" />
+                  <Skeleton className="h-4 w-56" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-[300px] w-full" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -307,7 +530,7 @@ export default function AnalyticsPage() {
     });
 
     return (
-      <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="space-y-4 animate-in fade-in duration-500">
         {/* Top Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
              <Card>
@@ -353,18 +576,30 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Row 1: Win Rates & Average Points */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <Card>
                 <CardHeader>
                     <CardTitle>Win Rates</CardTitle>
                     <CardDescription>Win percentage (min 3 matches)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{ value: { label: "Win %", color: "hsl(var(--primary))" } }} className="h-[300px] w-full">
+                    <ChartContainer config={{ value: { label: "Win %", color: "hsl(var(--primary))" } }} className="h-[250px] sm:h-[300px] w-full">
                         <BarChart data={data.winRates} layout="vertical" margin={{ left: 0, right: 40 }}>
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={80} className="text-xs font-medium" />
                             <XAxis type="number" domain={[0, 100]} hide />
-                            <ChartTooltip content={<ChartTooltipContent />} />
+                            <ChartTooltip 
+                                content={({ active, payload }) => {
+                                    if (!active || !payload?.length) return null;
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                            <p className="font-semibold">{d.name}</p>
+                                            <p className="text-muted-foreground">Win Rate: <span className="text-foreground font-medium">{d.value}%</span></p>
+                                            <p className="text-muted-foreground">Matches: <span className="text-foreground font-medium">{d.wins}/{d.matches}</span> won</p>
+                                        </div>
+                                    );
+                                }}
+                            />
                             <Bar dataKey="value" radius={4} barSize={20}>
                                 <LabelList dataKey="value" position="right" formatter={(val: any) => `${val}%`} className="fill-foreground" fontSize={12} />
                                 {data.winRates.map((entry: any, index: number) => (
@@ -382,11 +617,23 @@ export default function AnalyticsPage() {
                     <CardDescription>Total points / Matches played (min 3 matches)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{ value: { label: "Avg Points", color: "hsl(var(--primary))" } }} className="h-[300px] w-full">
+                    <ChartContainer config={{ value: { label: "Avg Points", color: "hsl(var(--primary))" } }} className="h-[250px] sm:h-[300px] w-full">
                         <BarChart data={data.avgPoints} layout="vertical" margin={{ left: 0, right: 40 }}>
                             <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={80} className="text-xs font-medium" />
                             <XAxis type="number" hide />
-                            <ChartTooltip content={<ChartTooltipContent />} />
+                            <ChartTooltip 
+                                content={({ active, payload }) => {
+                                    if (!active || !payload?.length) return null;
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                            <p className="font-semibold">{d.name}</p>
+                                            <p className="text-muted-foreground">Avg Points: <span className="text-foreground font-medium">{d.value}</span></p>
+                                            <p className="text-muted-foreground">Total: <span className="text-foreground font-medium">{d.totalPoints}</span> pts in <span className="text-foreground font-medium">{d.matches}</span> matches</p>
+                                        </div>
+                                    );
+                                }}
+                            />
                             <Bar dataKey="value" radius={4} barSize={20}>
                                 <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={12} />
                                 {data.avgPoints.map((entry: any, index: number) => (
@@ -400,14 +647,14 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Row 2: Win Rate Trends & Activity */}
-        <div className="grid gap-4 md:grid-cols-3">
-            <Card className="md:col-span-2">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Win Rate Trends</CardTitle>
                 <CardDescription>Win percentage progression over selected period</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px] w-full">
                   <LineChart data={data.winRateOverTime} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid vertical={false} />
                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
@@ -422,18 +669,18 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            <Card className="md:col-span-1">
+            <Card className="lg:col-span-1">
                 <CardHeader>
                     <CardTitle>Activity</CardTitle>
                     <CardDescription>Matches by day of week</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ChartContainer config={{ matches: { label: "Matches", color: "hsl(var(--primary))" } }} className="h-[300px] w-full">
+                    <ChartContainer config={{ matches: { label: "Matches", color: isDark ? "#cccccc" : "#2b2b2b" } }} className="h-[250px] sm:h-[300px] w-full">
                         <BarChart data={data.activityByDay} margin={{ top: 20 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="day" tickLine={false} axisLine={false} />
                             <ChartTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="matches" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" barSize={30}>
+                            <Bar dataKey="matches" radius={[4, 4, 0, 0]} fill={isDark ? "#cccccc" : "#2b2b2b"} barSize={30}>
                                 <LabelList dataKey="matches" position="top" className="fill-foreground" fontSize={12} />
                             </Bar>
                         </BarChart>
@@ -443,13 +690,14 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Row 3: Bonus Points */}
+        {data.mostBonusPoints.length > 0 && (
         <Card>
             <CardHeader>
             <CardTitle>Bonus Points Impact</CardTitle>
             <CardDescription>Top players by bonus points (positive and negative)</CardDescription>
             </CardHeader>
             <CardContent>
-            <ChartContainer config={{ value: { label: "Bonus Points" } }} className="h-[250px] w-full">
+            <ChartContainer config={{ value: { label: "Bonus Points" } }} className="h-[200px] sm:h-[250px] w-full">
                 <BarChart data={data.mostBonusPoints} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid vertical={false} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} />
@@ -464,20 +712,33 @@ export default function AnalyticsPage() {
             </ChartContainer>
             </CardContent>
         </Card>
+        )}
 
         {/* Row 4: Totals (Bottom) */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <Card>
             <CardHeader>
                 <CardTitle>Total Points Gained</CardTitle>
                 <CardDescription>Top players by total points</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={{ value: { label: "Points", color: colorPalette[2] } }} className="h-[250px] w-full">
+                <ChartContainer config={{ value: { label: "Points", color: colorPalette[2] } }} className="h-[200px] sm:h-[250px] w-full">
                 <BarChart data={data.mostPoints} layout="vertical" margin={{ left: 0, right: 30 }}>
                     <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={60} className="text-xs" />
                     <XAxis type="number" hide />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip 
+                        content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            return (
+                                <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                    <p className="font-semibold">{d.name}</p>
+                                    <p className="text-muted-foreground">Total Points: <span className="text-foreground font-medium">{d.value}</span></p>
+                                    <p className="text-muted-foreground">From <span className="text-foreground font-medium">{d.matches}</span> matches</p>
+                                </div>
+                            );
+                        }}
+                    />
                     <Bar dataKey="value" radius={4} barSize={16}>
                     <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={12} />
                     {data.mostPoints.map((entry: any, index: number) => (
@@ -495,11 +756,23 @@ export default function AnalyticsPage() {
                 <CardDescription>Top players by total wins</CardDescription>
             </CardHeader>
             <CardContent>
-                <ChartContainer config={{ value: { label: "Wins", color: colorPalette[3] } }} className="h-[250px] w-full">
+                <ChartContainer config={{ value: { label: "Wins", color: colorPalette[3] } }} className="h-[200px] sm:h-[250px] w-full">
                 <BarChart data={data.mostWins} layout="vertical" margin={{ left: 0, right: 30 }}>
                     <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} width={60} className="text-xs" />
                     <XAxis type="number" hide />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip 
+                        content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            return (
+                                <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                    <p className="font-semibold">{d.name}</p>
+                                    <p className="text-muted-foreground">Total Wins: <span className="text-foreground font-medium">{d.value}</span></p>
+                                    <p className="text-muted-foreground">From <span className="text-foreground font-medium">{d.matches}</span> matches</p>
+                                </div>
+                            );
+                        }}
+                    />
                     <Bar dataKey="value" radius={4} barSize={16}>
                     <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={12} />
                     {data.mostWins.map((entry: any, index: number) => (
@@ -515,18 +788,300 @@ export default function AnalyticsPage() {
     );
   };
 
+  const renderDuoContent = (data: any) => {
+    if (!data || data.totalDuos === 0) return <div className="py-12 text-center text-muted-foreground">No duo partnerships found in this period.</div>;
+
+    const duoChartConfig: any = { value: { label: "Value" } };
+    data.duoWinRates.forEach((d: any, i: number) => {
+        duoChartConfig[d.shortName] = { label: d.name, color: colorPalette[i % colorPalette.length] };
+    });
+
+    return (
+      <div className="space-y-4 animate-in fade-in duration-500">
+        {/* Top Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Duos</CardTitle>
+                    <Handshake className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{data.totalDuos}</div>
+                    <p className="text-xs text-muted-foreground">Unique partnerships</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Best Duo Win Rate</CardTitle>
+                    <Trophy className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{data.duoWinRates[0]?.value || 0}%</div>
+                    <p className="text-xs text-muted-foreground">{data.duoWinRates[0]?.shortName || '-'}</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Highest Avg Pts</CardTitle>
+                    <Calculator className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{data.duoAvgPoints[0]?.value || 0}</div>
+                    <p className="text-xs text-muted-foreground">{data.duoAvgPoints[0]?.shortName || '-'}</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Most Duo Wins</CardTitle>
+                    <Trophy className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold">{data.duoMostWins[0]?.value || 0}</div>
+                    <p className="text-xs text-muted-foreground">{data.duoMostWins[0]?.shortName || '-'}</p>
+                </CardContent>
+            </Card>
+        </div>
+
+        {/* Row 1: Win Rates & Average Points */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Duo Win Rates</CardTitle>
+                    <CardDescription>Win percentage by partnership (min 2 matches)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{ value: { label: "Win %", color: "hsl(var(--primary))" } }} className="h-[300px] sm:h-[350px] w-full">
+                        <BarChart data={data.duoWinRates} layout="vertical" margin={{ left: 0, right: 50 }}>
+                            <YAxis dataKey="shortName" type="category" tickLine={false} axisLine={false} width={50} className="text-xs font-medium" />
+                            <XAxis type="number" domain={[0, 100]} hide />
+                            <ChartTooltip 
+                                content={({ active, payload }) => {
+                                    if (!active || !payload?.length) return null;
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                            <p className="font-semibold">{d.name}</p>
+                                            <p className="text-muted-foreground text-xs">{d.player1} & {d.player2}</p>
+                                            <p className="text-muted-foreground mt-1">Win Rate: <span className="text-foreground font-medium">{d.value}%</span></p>
+                                            <p className="text-muted-foreground">Matches: <span className="text-foreground font-medium">{d.wins}/{d.matches}</span> won</p>
+                                        </div>
+                                    );
+                                }}
+                            />
+                            <Bar dataKey="value" radius={4} barSize={18}>
+                                <LabelList dataKey="value" position="right" formatter={(val: any) => `${val}%`} className="fill-foreground" fontSize={11} />
+                                {data.duoWinRates.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={colorPalette[index % colorPalette.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Duo Avg Points per Match</CardTitle>
+                    <CardDescription>Average points by partnership (min 2 matches)</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{ value: { label: "Avg Points", color: "hsl(var(--primary))" } }} className="h-[300px] sm:h-[350px] w-full">
+                        <BarChart data={data.duoAvgPoints} layout="vertical" margin={{ left: 0, right: 40 }}>
+                            <YAxis dataKey="shortName" type="category" tickLine={false} axisLine={false} width={50} className="text-xs font-medium" />
+                            <XAxis type="number" hide />
+                            <ChartTooltip 
+                                content={({ active, payload }) => {
+                                    if (!active || !payload?.length) return null;
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                            <p className="font-semibold">{d.name}</p>
+                                            <p className="text-muted-foreground text-xs">{d.player1} & {d.player2}</p>
+                                            <p className="text-muted-foreground mt-1">Avg Points: <span className="text-foreground font-medium">{d.value}</span></p>
+                                            <p className="text-muted-foreground">Total: <span className="text-foreground font-medium">{d.totalPoints}</span> pts in <span className="text-foreground font-medium">{d.matches}</span> matches</p>
+                                        </div>
+                                    );
+                                }}
+                            />
+                            <Bar dataKey="value" radius={4} barSize={18}>
+                                <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={11} />
+                                {data.duoAvgPoints.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={colorPalette[index % colorPalette.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+
+        {/* Row 2: Most Matches Together & Most Points */}
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Most Games Together</CardTitle>
+                    <CardDescription>Partnerships with most matches played</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{ value: { label: "Matches", color: colorPalette[4] } }} className="h-[250px] sm:h-[300px] w-full">
+                        <BarChart data={data.duoMostMatches} layout="vertical" margin={{ left: 0, right: 40 }}>
+                            <YAxis dataKey="shortName" type="category" tickLine={false} axisLine={false} width={50} className="text-xs font-medium" />
+                            <XAxis type="number" hide />
+                            <ChartTooltip 
+                                content={({ active, payload }) => {
+                                    if (!active || !payload?.length) return null;
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                            <p className="font-semibold">{d.name}</p>
+                                            <p className="text-muted-foreground text-xs">{d.player1} & {d.player2}</p>
+                                            <p className="text-muted-foreground mt-1">Matches: <span className="text-foreground font-medium">{d.value}</span></p>
+                                            <p className="text-muted-foreground">Wins: <span className="text-foreground font-medium">{d.wins}</span></p>
+                                        </div>
+                                    );
+                                }}
+                            />
+                            <Bar dataKey="value" radius={4} barSize={18}>
+                                <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={11} />
+                                {data.duoMostMatches.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={colorPalette[index % colorPalette.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Total Duo Points</CardTitle>
+                    <CardDescription>Total points earned by partnerships</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ChartContainer config={{ value: { label: "Points", color: colorPalette[2] } }} className="h-[250px] sm:h-[300px] w-full">
+                        <BarChart data={data.duoMostPoints} layout="vertical" margin={{ left: 0, right: 40 }}>
+                            <YAxis dataKey="shortName" type="category" tickLine={false} axisLine={false} width={50} className="text-xs font-medium" />
+                            <XAxis type="number" hide />
+                            <ChartTooltip 
+                                content={({ active, payload }) => {
+                                    if (!active || !payload?.length) return null;
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                            <p className="font-semibold">{d.name}</p>
+                                            <p className="text-muted-foreground text-xs">{d.player1} & {d.player2}</p>
+                                            <p className="text-muted-foreground mt-1">Total Points: <span className="text-foreground font-medium">{d.value}</span></p>
+                                            <p className="text-muted-foreground">From <span className="text-foreground font-medium">{d.matches}</span> matches</p>
+                                        </div>
+                                    );
+                                }}
+                            />
+                            <Bar dataKey="value" radius={4} barSize={18}>
+                                <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={11} />
+                                {data.duoMostPoints.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={colorPalette[index % colorPalette.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ChartContainer>
+                </CardContent>
+            </Card>
+        </div>
+
+        {/* Row 3: Total Wins */}
+        <Card>
+            <CardHeader>
+                <CardTitle>Total Duo Wins</CardTitle>
+                <CardDescription>Partnerships ranked by total wins</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ChartContainer config={{ value: { label: "Wins", color: colorPalette[0] } }} className="h-[250px] sm:h-[300px] w-full">
+                    <BarChart data={data.duoMostWins} layout="vertical" margin={{ left: 0, right: 40 }}>
+                        <YAxis dataKey="shortName" type="category" tickLine={false} axisLine={false} width={50} className="text-xs font-medium" />
+                        <XAxis type="number" hide />
+                        <ChartTooltip 
+                            content={({ active, payload }) => {
+                                if (!active || !payload?.length) return null;
+                                const d = payload[0].payload;
+                                return (
+                                    <div className="bg-background border rounded-lg p-2 shadow-lg text-sm">
+                                        <p className="font-semibold">{d.name}</p>
+                                        <p className="text-muted-foreground text-xs">{d.player1} & {d.player2}</p>
+                                        <p className="text-muted-foreground mt-1">Total Wins: <span className="text-foreground font-medium">{d.value}</span></p>
+                                        <p className="text-muted-foreground">From <span className="text-foreground font-medium">{d.matches}</span> matches</p>
+                                    </div>
+                                );
+                            }}
+                        />
+                        <Bar dataKey="value" radius={4} barSize={18}>
+                            <LabelList dataKey="value" position="right" className="fill-foreground" fontSize={11} />
+                            {data.duoMostWins.map((entry: any, index: number) => (
+                                <Cell key={`cell-${index}`} fill={colorPalette[index % colorPalette.length]} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ChartContainer>
+            </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background overflow-x-auto">
-    
 
-      <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8">
+
+      <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-4">
+        
+        {/* <Dialog>
+            <DialogTrigger asChild>
+            <Card className="bg-linear-to-r from-primary/10 via-background to-background border-primary/20 cursor-pointer hover:border-primary/50 transition-all group">
+                <CardContent className="p-6 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                            <Trophy className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">Player of the Day</h3>
+                            <p className="text-muted-foreground text-sm group-hover:text-primary transition-colors">Click to reveal today's champion</p>
+                        </div>
+                    </div>
+                    <Button variant="ghost" className="group-hover:translate-x-1 transition-transform">
+                        Reveal <ChevronDown className="ml-2 h-4 w-4 -rotate-90" />
+                    </Button>
+                </CardContent>
+            </Card>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md text-center">
+                <DialogHeader>
+                    <DialogTitle className="text-center flex flex-col items-center gap-2">
+                        <Trophy className="h-8 w-8 text-primary mb-2" />
+                        Player of the Day
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="py-6 space-y-4">
+                    <div className="scale-150 transform py-4">
+                        <div className="text-4xl font-black text-primary tracking-tight">
+                            {stats.playerOfTheDay || ""}
+                        </div>
+                    </div>
+                    <p className="text-muted-foreground">
+                        {stats.playerOfTheDay ? "Most wins achieved today!" : "No matches played today yet."}
+                    </p>
+                    <ConfettiSideCannons />
+                </div>
+            </DialogContent>
+        </Dialog> */}
 
         {/* Controls & Tabs */}
-        <Tabs defaultValue="doubles" className="space-y-6">
+        <Tabs defaultValue="doubles" className="space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
-                <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+                <TabsList className="grid w-full md:w-[500px] grid-cols-3">
                     <TabsTrigger value="doubles" className="flex items-center gap-2">
                     <Users className="h-4 w-4" /> Doubles
+                    </TabsTrigger>
+                    <TabsTrigger value="duos" className="flex items-center gap-2">
+                    <Handshake className="h-4 w-4" /> Duos
                     </TabsTrigger>
                     <TabsTrigger value="singles" className="flex items-center gap-2">
                     <User className="h-4 w-4" /> Singles
@@ -569,11 +1124,15 @@ export default function AnalyticsPage() {
                 </div>
             </div>
 
-            <TabsContent value="doubles" className="space-y-4 ">
+            <TabsContent value="doubles" className="space-y-8">
                 {renderContent(stats.doubles, "Doubles")}
             </TabsContent>
 
-            <TabsContent value="singles" className="space-y-4">
+            <TabsContent value="duos" className="space-y-8">
+                {renderDuoContent(stats.duos)}
+            </TabsContent>
+
+            <TabsContent value="singles" className="space-y-8">
                 {renderContent(stats.singles, "Singles")}
             </TabsContent>
         </Tabs>
@@ -581,3 +1140,4 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
