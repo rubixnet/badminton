@@ -549,14 +549,14 @@ export function AdminMatchTable({
   return (
     <div className="space-y-4">
       {/* Search and Controls */}
-      <div className="flex flex-row gap-4 items-center justify-start">
+      <div className="flex flex-row  items-center justify-start">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+          <Search className="absolute left-3 top-1/2  transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search matches by name, score, or date..."
+            placeholder="Search matches by name, score, or date."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="h-8 pl-10 text-sm *:data-[slot=input]:h-8 *:data-[slot=input]:leading-8"
+            className="h-8 pl-7 text-sm *:data-[slot=input]:h-8 *:data-[slot=input]:leading-8"
           />
         </div>
       </div>
