@@ -212,3 +212,111 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    const sheets = await getGoogleSheetsClient();
+
+    // Find the row index
+    const idResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A:A`,
+    });
+
+    const rows = idResponse.data.values || [];
+    const rowIndex = rows.findIndex((row: string[]) => row[0] === id);
+
+    if (rowIndex === -1) {
+      return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
+
+    // Row number is index + 1
+    const rowNumber = rowIndex + 1;
+
+    // We will clear the row content
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A${rowNumber}:N${rowNumber}`,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting match:", error);
+    return NextResponse.json(
+      { error: "Failed to delete match" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    if (!body.id)
+      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+
+    const sheets = await getGoogleSheetsClient();
+
+    // Find the row index
+    const idResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A:A`,
+    });
+
+    const rows = idResponse.data.values || [];
+    const rowIndex = rows.findIndex((row: string[]) => row[0] === body.id);
+
+    if (rowIndex === -1) {
+      return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
+
+    const rowNumber = rowIndex + 1;
+
+    const match = body;
+
+    const winner =
+      match.team1.score > match.team2.score
+        ? "team1"
+        : match.team2.score > match.team1.score
+          ? "team2"
+          : "draw";
+
+    const values = [
+      [
+        match.id,
+        match.createdAt,
+        winner,
+        match.team1.score,
+        match.team2.score,
+        match.team1.players[0]?.name || "",
+        match.team1.players[0]?.bonusPoints || 0,
+        match.team1.players[1]?.name || "",
+        match.team1.players[1]?.bonusPoints || 0,
+        match.team2.players[0]?.name || "",
+        match.team2.players[0]?.bonusPoints || 0,
+        match.team2.players[1]?.name || "",
+        match.team2.players[1]?.bonusPoints || 0,
+        JSON.stringify(match.checkpoints || []),
+      ],
+    ];
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A${rowNumber}:N${rowNumber}`,
+      valueInputOption: "RAW",
+      requestBody: { values },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error updating match:", error);
+    return NextResponse.json(
+      { error: "Failed to update match" },
+      { status: 500 },
+    );
+  }
+}

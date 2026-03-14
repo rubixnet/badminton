@@ -11,12 +11,14 @@ const Popover = PopoverPrimitive.Root;
 function PopoverTrigger({
   className,
   children,
+  render,
   ...props
 }: PopoverPrimitive.Trigger.Props) {
   return (
     <PopoverPrimitive.Trigger
       className={className}
       data-slot="popover-trigger"
+      render={render}
       {...props}
     >
       {children}

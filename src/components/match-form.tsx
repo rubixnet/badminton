@@ -57,7 +57,10 @@ function TeamSection({
             <Input
               id={`${teamId}-p1`}
               value={p1}
-              onChange={(e) => /^[a-zA-Z\s]*$/.test(e.target.value) && onP1(e.target.value)}
+              onChange={(e) => {
+                const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                onP1(filteredValue);
+              }}
               placeholder="Enter name"
               required={p1Required}
               className="mt-1 focus-visible:ring-0"
@@ -82,7 +85,10 @@ function TeamSection({
             <Input
               id={`${teamId}-p2-top`}
               value={p2}
-              onChange={(e) => /^[a-zA-Z\s]*$/.test(e.target.value) && onP2(e.target.value)}
+              onChange={(e) => {
+                const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                onP2(filteredValue);
+              }}
               placeholder="Enter name"
               className="mt-1 focus-visible:ring-0"
             />
@@ -115,7 +121,10 @@ function TeamSection({
               <Input
                 id={`${teamId}-p2`}
                 value={p2}
-                onChange={(e) => /^[a-zA-Z\s]*$/.test(e.target.value) && onP2(e.target.value)}
+                onChange={(e) => {
+                  const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  onP2(filteredValue);
+                }}
                 placeholder="Enter name"
                 className="mt-1 focus-visible:ring-0"
               />

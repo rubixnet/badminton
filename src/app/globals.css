@@ -4,9 +4,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-.radius-inherit {
+/* .radius-inherit {
   border-radius: inherit;
-}
+} */
 
 @theme inline {
   --color-background: var(--background);
