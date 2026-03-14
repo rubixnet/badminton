@@ -73,7 +73,7 @@ function PlayerSelector({
         const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, "");
         onChange(filteredValue);
       }}
-      className="h-8"
+      className="h-8 text-sm *:data-[slot=input]:h-8 *:data-[slot=input]:leading-8"
     />
   );
 }
@@ -313,7 +313,14 @@ export function AdminMatchTable({
                 open={isEditCalendarOpen}
                 onOpenChange={setIsEditCalendarOpen}
               >
-                <PopoverTrigger className="w-full pl-3 text-left font-normal h-8">
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="w-full h-8 justify-start pl-3 pr-2 text-left font-normal text-sm sm:text-sm [&_svg:not([class*='size-'])]:size-4"
+                    />
+                  }
+                >
                   {currentEditForm.date ? (
                     format(currentEditForm.date, "PPP")
                   ) : (
@@ -398,16 +405,17 @@ export function AdminMatchTable({
                     const filteredValue = e.target.value.replace(/[^\d]/g, "");
                     updateEditForm({ team1Score: filteredValue });
                   }}
-                  className="h-7 w-12 text-center p-0"
+                  className="h-7 w-12 p-0 text-center text-sm *:data-[slot=input]:h-7 *:data-[slot=input]:leading-7"
                 />
                 <span>-</span>
+                
                 <Input
                   value={currentEditForm.team2Score || ""}
                   onChange={(e) => {
                     const filteredValue = e.target.value.replace(/[^\d]/g, "");
                     updateEditForm({ team2Score: filteredValue });
                   }}
-                  className="h-7 w-12 text-center p-0"
+                  className="h-7 w-12 p-0 text-center text-sm *:data-[slot=input]:h-7 *:data-[slot=input]:leading-7"
                 />
               </div>
             );
@@ -548,7 +556,7 @@ export function AdminMatchTable({
             placeholder="Search matches by name, score, or date..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 h-8"
+            className="h-8 pl-10 text-sm *:data-[slot=input]:h-8 *:data-[slot=input]:leading-8"
           />
         </div>
       </div>
@@ -569,7 +577,14 @@ export function AdminMatchTable({
               <Repeat className="h-4 w-4" />
             </Button>
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger className="w-30 justify-start text-left font-normal h-8">
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    className="h-8 w-30 justify-start text-left font-normal text-sm sm:text-sm [&_svg:not([class*='size-'])]:size-4"
+                  />
+                }
+              >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {newMatchDate ? (
                   format(newMatchDate, "MMM d")
@@ -612,7 +627,7 @@ export function AdminMatchTable({
           <div className="w-30">
             <div className="flex items-center gap-2 justify-center">
               <Input
-                className="text-center h-8 w-12"
+                className="h-8 w-12 text-center text-sm *:data-[slot=input]:h-8 *:data-[slot=input]:leading-8"
                 placeholder="0"
                 value={newTeam1Score}
                 onChange={(e) =>
@@ -621,7 +636,7 @@ export function AdminMatchTable({
               />
               <span className="font-bold">-</span>
               <Input
-                className="text-center h-8 w-12"
+                className="h-8 w-12 text-center text-sm *:data-[slot=input]:h-8 *:data-[slot=input]:leading-8"
                 placeholder="0"
                 value={newTeam2Score}
                 onChange={(e) =>
