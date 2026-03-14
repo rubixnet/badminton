@@ -144,7 +144,10 @@ function TeamSection({
           type="number"
           min="0"
           value={score}
-          onChange={(e) => /^\d*$/.test(e.target.value) && onScore(e.target.value)}
+          onChange={(e) => {
+            const filteredValue = e.target.value.replace(/[^\d]/g, '');
+            onScore(filteredValue);
+          }}
           placeholder="0"
           required
           className="mt-1 focus-visible:ring-0"

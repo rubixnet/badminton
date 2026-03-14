@@ -11,7 +11,6 @@ import {
   getPaginationRowModel,
 } from "@tanstack/react-table";
 import {
-  ChevronDownIcon,
   Trash2,
   Save,
   X,
@@ -47,20 +46,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { Match } from "@/types/match";
 
@@ -69,6 +54,28 @@ interface AdminMatchTableProps {
   onUpdate: (match: Match) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onCreate: (match: any) => Promise<void>;
+}
+
+function PlayerSelector({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <Input
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => {
+        const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+        onChange(filteredValue);
+      }}
+      className="h-8"
+    />
+  );
 }
 
 export function AdminMatchTable({
@@ -100,117 +107,19 @@ export function AdminMatchTable({
 
   // Search and Player Selection State
   const [searchTerm, setSearchTerm] = useState("");
-  const [usePlayerSelection, setUsePlayerSelection] = useState(false);
+  const editFormRef = useRef<any>({});
 
-  const availablePlayers = ["Gaurav", "Om", "Satyajeet", "Vaibhav", "Virochan"];
+  useEffect(() => {
+    editFormRef.current = editForm;
+  }, [editForm]);
 
-  // Get available players for each position (excluding already selected ones)
-  const getAvailablePlayers = (excludePlayers: string[]) => {
-    return availablePlayers.filter(
-      (player) => !excludePlayers.includes(player),
-    );
-  };
-
-  // Player Selection Component
-  const PlayerSelector = ({
-    value,
-    onChange,
-    placeholder,
-    excludePlayers = [],
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    excludePlayers?: string[];
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    // Update input value when value prop changes
-    useEffect(() => {
-      if (inputRef.current && inputRef.current.value !== value) {
-        inputRef.current.value = value;
-      }
-    }, [value]);
-
-    if (!usePlayerSelection) {
-      return (
-        <Input
-          ref={inputRef}
-          placeholder={placeholder}
-          defaultValue={value}
-          onChange={(e) => {
-            const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-            e.target.value = filteredValue;
-            onChange(filteredValue);
-          }}
-          className="h-8"
-        />
-      );
-    }
-
-    const available = getAvailablePlayers(excludePlayers);
-
-    return (
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full justify-start text-left font-normal h-8"
-            onClick={() => setIsOpen(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setIsOpen(true);
-              } else if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setIsOpen(true);
-              }
-            }}
-            aria-expanded={isOpen}
-            aria-haspopup="listbox"
-            role="combobox"
-            aria-label={`Select ${placeholder}`}
-          >
-            {value || (
-              <span className="text-muted-foreground">{placeholder}</span>
-            )}
-            <ChevronDownIcon className="ml-auto h-4 w-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className="w-[200px] p-0"
-          align="start"
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-            // Focus will be handled by Command
-          }}
-          onCloseAutoFocus={(e) => {
-            e.preventDefault();
-          }}
-        >
-          <Command>
-            <CommandInput placeholder="Search players..." />
-            <CommandEmpty>No players found.</CommandEmpty>
-            <CommandGroup>
-              {available.map((player) => (
-                <CommandItem
-                  key={player}
-                  value={player}
-                  onSelect={(selectedValue) => {
-                    onChange(selectedValue);
-                    setIsOpen(false);
-                  }}
-                >
-                  {player}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    );
-  };
+  const updateEditForm = useCallback((updates: Record<string, any>) => {
+    setEditForm((prev: any) => {
+      const next = { ...prev, ...updates };
+      editFormRef.current = next;
+      return next;
+    });
+  }, []);
 
   // Filter data based on search term
   const filteredData = useMemo(() => {
@@ -246,16 +155,19 @@ export function AdminMatchTable({
   }, [data, searchTerm]);
 
   const handleEdit = (match: Match) => {
-    setEditingId(match.id);
-    setEditForm({
+    const nextEditForm = {
       team1P1: match.team1.players[0]?.name || "",
       team1P2: match.team1.players[1]?.name || "",
-      team1Score: match.team1.score,
+      team1Score: match.team1.score.toString(),
       team2P1: match.team2.players[0]?.name || "",
       team2P2: match.team2.players[1]?.name || "",
-      team2Score: match.team2.score,
+      team2Score: match.team2.score.toString(),
       date: new Date(match.createdAt),
-    });
+    };
+
+    setEditingId(match.id);
+    setEditForm(nextEditForm);
+    editFormRef.current = nextEditForm;
   };
 
   const handleDuplicate = (match: Match) => {
@@ -268,8 +180,6 @@ export function AdminMatchTable({
 
     const date = new Date(match.createdAt);
     setNewMatchDate(date);
-    setNewMatchHour(format(date, "HH"));
-    setNewMatchMinute(format(date, "mm"));
 
     toast({
       title: "Match Duplicated",
@@ -281,27 +191,29 @@ export function AdminMatchTable({
   };
 
   const handleSave = async (originalMatch: Match) => {
+    const currentEditForm = editFormRef.current;
+
     try {
       const updatedMatch = {
         ...originalMatch,
-        createdAt: editForm.date.toISOString(),
+        createdAt: currentEditForm.date.toISOString(),
         team1: {
           ...originalMatch.team1,
-          score: parseInt(editForm.team1Score),
+          score: parseInt(currentEditForm.team1Score),
           players: [
-            { ...originalMatch.team1.players[0], name: editForm.team1P1 },
-            editForm.team1P2
-              ? { ...originalMatch.team1.players[1], name: editForm.team1P2 }
+            { ...originalMatch.team1.players[0], name: currentEditForm.team1P1 },
+            currentEditForm.team1P2
+              ? { ...originalMatch.team1.players[1], name: currentEditForm.team1P2 }
               : undefined,
           ].filter(Boolean) as any[],
         },
         team2: {
           ...originalMatch.team2,
-          score: parseInt(editForm.team2Score),
+          score: parseInt(currentEditForm.team2Score),
           players: [
-            { ...originalMatch.team2.players[0], name: editForm.team2P1 },
-            editForm.team2P2
-              ? { ...originalMatch.team2.players[1], name: editForm.team2P2 }
+            { ...originalMatch.team2.players[0], name: currentEditForm.team2P1 },
+            currentEditForm.team2P2
+              ? { ...originalMatch.team2.players[1], name: currentEditForm.team2P2 }
               : undefined,
           ].filter(Boolean) as any[],
         },
@@ -370,8 +282,6 @@ export function AdminMatchTable({
 
       if (!keepDate) {
         setNewMatchDate(new Date());
-        setNewMatchHour("12");
-        setNewMatchMinute("00");
       }
 
       toast({ title: "Success", description: "Match created" });
@@ -386,11 +296,6 @@ export function AdminMatchTable({
     }
   };
 
-  const handleNameChange = useCallback((value: string, field: string) => {
-    const filteredValue = value.replace(/[^a-zA-Z\s]/g, '');
-    setEditForm((prev: any) => ({ ...prev, [field]: filteredValue }));
-  }, []);
-
   const columns = useMemo<ColumnDef<Match>[]>(
     () => [
       {
@@ -400,32 +305,29 @@ export function AdminMatchTable({
         minSize: 120,
         cell: ({ row }) => {
           const isEditing = editingId === row.original.id;
+          const currentEditForm = editFormRef.current;
+
           if (isEditing) {
             return (
               <Popover
                 open={isEditCalendarOpen}
                 onOpenChange={setIsEditCalendarOpen}
               >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full pl-3 text-left font-normal h-8"
-                  >
-                    {editForm.date ? (
-                      format(editForm.date, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
+                <PopoverTrigger className="w-full pl-3 text-left font-normal h-8">
+                  {currentEditForm.date ? (
+                    format(currentEditForm.date, "PPP")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
-                    selected={editForm.date}
+                    selected={currentEditForm.date}
                     onSelect={(date) => {
                       if (date) {
-                        setEditForm({ ...editForm, date });
+                        updateEditForm({ date });
                         setIsEditCalendarOpen(false);
                       }
                     }}
@@ -448,32 +350,20 @@ export function AdminMatchTable({
         minSize: 160,
         cell: ({ row }) => {
           const isEditing = editingId === row.original.id;
+          const currentEditForm = editFormRef.current;
+
           if (isEditing) {
             return (
               <div className="flex flex-col gap-1">
                 <PlayerSelector
-                  value={editForm.team1P1}
-                  onChange={(value) =>
-                    setEditForm({ ...editForm, team1P1: value })
-                  }
+                  value={currentEditForm.team1P1 || ""}
+                  onChange={(value) => updateEditForm({ team1P1: value })}
                   placeholder="Player 1"
-                  excludePlayers={[
-                    editForm.team1P2,
-                    editForm.team2P1,
-                    editForm.team2P2,
-                  ].filter(Boolean)}
                 />
                 <PlayerSelector
-                  value={editForm.team1P2}
-                  onChange={(value) =>
-                    setEditForm({ ...editForm, team1P2: value })
-                  }
+                  value={currentEditForm.team1P2 || ""}
+                  onChange={(value) => updateEditForm({ team1P2: value })}
                   placeholder="Player 2"
-                  excludePlayers={[
-                    editForm.team1P1,
-                    editForm.team2P1,
-                    editForm.team2P2,
-                  ].filter(Boolean)}
                 />
               </div>
             );
@@ -497,24 +387,26 @@ export function AdminMatchTable({
         minSize: 100,
         cell: ({ row }) => {
           const isEditing = editingId === row.original.id;
+          const currentEditForm = editFormRef.current;
+
           if (isEditing) {
             return (
-              <div className="flex items-center gap-1">
+              <div className="flex flex-col items-center gap-1">
                 <Input
-                  value={editForm.team1Score}
-                  onChange={(e) =>
-                    /^\d*$/.test(e.target.value) &&
-                    setEditForm({ ...editForm, team1Score: e.target.value })
-                  }
+                  value={currentEditForm.team1Score || ""}
+                  onChange={(e) => {
+                    const filteredValue = e.target.value.replace(/[^\d]/g, "");
+                    updateEditForm({ team1Score: filteredValue });
+                  }}
                   className="h-7 w-12 text-center p-0"
                 />
                 <span>-</span>
                 <Input
-                  value={editForm.team2Score}
-                  onChange={(e) =>
-                    /^\d*$/.test(e.target.value) &&
-                    setEditForm({ ...editForm, team2Score: e.target.value })
-                  }
+                  value={currentEditForm.team2Score || ""}
+                  onChange={(e) => {
+                    const filteredValue = e.target.value.replace(/[^\d]/g, "");
+                    updateEditForm({ team2Score: filteredValue });
+                  }}
                   className="h-7 w-12 text-center p-0"
                 />
               </div>
@@ -534,32 +426,20 @@ export function AdminMatchTable({
         minSize: 160,
         cell: ({ row }) => {
           const isEditing = editingId === row.original.id;
+          const currentEditForm = editFormRef.current;
+
           if (isEditing) {
             return (
               <div className="flex flex-col gap-1">
                 <PlayerSelector
-                  value={editForm.team2P1}
-                  onChange={(value) =>
-                    setEditForm({ ...editForm, team2P1: value })
-                  }
+                  value={currentEditForm.team2P1 || ""}
+                  onChange={(value) => updateEditForm({ team2P1: value })}
                   placeholder="Player 1"
-                  excludePlayers={[
-                    editForm.team1P1,
-                    editForm.team1P2,
-                    editForm.team2P2,
-                  ].filter(Boolean)}
                 />
                 <PlayerSelector
-                  value={editForm.team2P2}
-                  onChange={(value) =>
-                    setEditForm({ ...editForm, team2P2: value })
-                  }
+                  value={currentEditForm.team2P2 || ""}
+                  onChange={(value) => updateEditForm({ team2P2: value })}
                   placeholder="Player 2"
-                  excludePlayers={[
-                    editForm.team1P1,
-                    editForm.team1P2,
-                    editForm.team2P1,
-                  ].filter(Boolean)}
                 />
               </div>
             );
@@ -643,7 +523,7 @@ export function AdminMatchTable({
         },
       },
     ],
-    [editingId, editForm, onDelete],
+    [editingId, isEditCalendarOpen, onDelete, updateEditForm],
   );
 
   const table = useReactTable({
@@ -677,7 +557,7 @@ export function AdminMatchTable({
         <h3 className="font-semibold mb-3 text-sm uppercase tracking-wider">
           Quick Add Match
         </h3>
-        <div className="flex lg:flex-row gap-2 min-w-[1000px] lg:min-w-0 lg:w-full items-center">
+        <div className="flex lg:flex-row gap-2 min-w-250 lg:min-w-0 lg:w-full items-center">
           <div className="flex items-center gap-2">
             <Button
               variant={keepDate ? "default" : "outline"}
@@ -689,18 +569,13 @@ export function AdminMatchTable({
               <Repeat className="h-4 w-4" />
             </Button>
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-[120px] justify-start text-left font-normal h-8"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {newMatchDate ? (
-                    format(newMatchDate, "MMM d")
-                  ) : (
-                    <span>Date</span>
-                  )}
-                </Button>
+              <PopoverTrigger className="w-30 justify-start text-left font-normal h-8">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {newMatchDate ? (
+                  format(newMatchDate, "MMM d")
+                ) : (
+                  <span>Date</span>
+                )}
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
@@ -715,73 +590,33 @@ export function AdminMatchTable({
                 />
               </PopoverContent>
             </Popover>
-            {/* <div className="flex items-center gap-1">
-              <Select
-                value={newMatchHour}
-                onValueChange={(v) => setNewMatchHour(v)}
-              >
-                <SelectTrigger className="w-[65px] h-9">
-                  <SelectValue placeholder="HH" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 24 }).map((_, i) => (
-                    <SelectItem key={i} value={i.toString().padStart(2, "0")}>
-                      {i.toString().padStart(2, "0")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="text-muted-foreground">:</span>
-              <Select
-                value={newMatchMinute}
-                onValueChange={(v) => setNewMatchMinute(v)}
-              >
-                <SelectTrigger className="w-[65px] h-9">
-                  <SelectValue placeholder="MM" />
-                </SelectTrigger>
-                <SelectContent>
-                  {["00", "15", "30", "45"].map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div> */}
           </div>
 
           {/* Team 1 Column */}
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-50">
             <div className="grid grid-cols-2 gap-2">
               <PlayerSelector
                 value={newTeam1P1}
                 onChange={setNewTeam1P1}
                 placeholder="P1"
-                excludePlayers={[newTeam1P2, newTeam2P1, newTeam2P2].filter(
-                  Boolean,
-                )}
               />
               <PlayerSelector
                 value={newTeam1P2}
                 onChange={setNewTeam1P2}
                 placeholder="P2"
-                excludePlayers={[newTeam1P1, newTeam2P1, newTeam2P2].filter(
-                  Boolean,
-                )}
               />
             </div>
           </div>
 
           {/* Score Column */}
-          <div className="w-[120px]">
+          <div className="w-30">
             <div className="flex items-center gap-2 justify-center">
               <Input
                 className="text-center h-8 w-12"
                 placeholder="0"
                 value={newTeam1Score}
                 onChange={(e) =>
-                  /^\d*$/.test(e.target.value) &&
-                  setNewTeam1Score(e.target.value)
+                  setNewTeam1Score(e.target.value.replace(/[^\d]/g, ""))
                 }
               />
               <span className="font-bold">-</span>
@@ -790,37 +625,30 @@ export function AdminMatchTable({
                 placeholder="0"
                 value={newTeam2Score}
                 onChange={(e) =>
-                  /^\d*$/.test(e.target.value) &&
-                  setNewTeam2Score(e.target.value)
+                  setNewTeam2Score(e.target.value.replace(/[^\d]/g, ""))
                 }
               />
             </div>
           </div>
 
           {/* Team 2 Column */}
-          <div className="flex-1 min-w-[200px]">
+          <div className="flex-1 min-w-50">
             <div className="grid grid-cols-2 gap-2">
               <PlayerSelector
                 value={newTeam2P1}
                 onChange={setNewTeam2P1}
                 placeholder="P1"
-                excludePlayers={[newTeam1P1, newTeam1P2, newTeam2P2].filter(
-                  Boolean,
-                )}
               />
               <PlayerSelector
                 value={newTeam2P2}
                 onChange={setNewTeam2P2}
                 placeholder="P2"
-                excludePlayers={[newTeam1P1, newTeam1P2, newTeam2P1].filter(
-                  Boolean,
-                )}
               />
             </div>
           </div>
 
           {/* Actions Column */}
-          <div className="w-[60px]">
+          <div className="w-15">
             <Button
               className="w-full h-9"
               onClick={handleCreate}
@@ -833,7 +661,7 @@ export function AdminMatchTable({
       </div>
 
       <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[620px]">
+        <Table className="min-w-155">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="bg-muted/50">
