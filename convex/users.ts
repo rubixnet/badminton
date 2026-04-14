@@ -19,7 +19,6 @@ export const finalizeUser = mutation({
     inviteCode: v.optional(v.string()) 
   },
   handler: async (ctx, args) => {
-    // 1. Create the base user profile
     const userId = await ctx.db.insert("users", {
       name: args.name,
       email: args.email,
@@ -27,9 +26,6 @@ export const finalizeUser = mutation({
       isOnboarded: true,
     });
 
-    // 2. THE PERMANENT FIX:
-    // We capture the inviteCode into a local constant.
-    // This "narrows" the type from (string | undefined) to just (string).
     const inviteCode = args.inviteCode;
 
     if (inviteCode !== undefined) {

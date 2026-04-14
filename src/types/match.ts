@@ -22,4 +22,6 @@ export interface Match {
     checkpoints: Checkpoint[];
     createdAt: string;
     winner?: "team1" | "team2" | "draw";
+    groupId: string;
+    userId: string;
 }

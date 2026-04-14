@@ -1,52 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getGoogleSheetsClient } from '@/lib/google-sheets'
-import type { Match } from '@/types/match'
+import { NextRequest, NextResponse } from "next/server";
+import { mapGVizRowToMatch } from "@/lib/match-mapping";
 
-const SHEET_ID = process.env.GOOGLE_SHEET_ID
-const SHEET_NAME = 'Sheet1'
+const SHEET_ID = process.env.GOOGLE_SHEET_ID;
+const SHEET_NAME = "Sheet1";
 
 export async function GET(request: NextRequest) {
   try {
-    if (!SHEET_ID) return NextResponse.json({ error: 'Config error' }, { status: 500 })
+    const { searchParams } = new URL(request.url);
+    const groupId = searchParams.get("groupId");
 
-    const sheets = await getGoogleSheetsClient()
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A2:N`,
-    })
+    if (!SHEET_ID || !groupId) return NextResponse.json({ matches: [] });
 
-    const rows = response.data.values || []
-    
-    const matches: Match[] = rows.map(row => {
-         try {
-          if (row[0] && row[0].trim().startsWith('{')) return JSON.parse(row[0])
-          if (!row[0]) return null;
-          return {
-            id: row[0],
-            createdAt: row[1],
-            winner: row[2] as 'team1' | 'team2' | 'draw',
-            team1: {
-              score: parseInt(row[3] || '0'),
-              players: [
-                { name: row[5] || '', bonusPoints: parseInt(row[6] || '0') },
-                ...(row[7] ? [{ name: row[7], bonusPoints: parseInt(row[8] || '0') }] : [])
-              ]
-            },
-            team2: {
-              score: parseInt(row[4] || '0'),
-              players: [
-                { name: row[9] || '', bonusPoints: parseInt(row[10] || '0') },
-                ...(row[11] ? [{ name: row[11], bonusPoints: parseInt(row[12] || '0') }] : [])
-              ]
-            },
-            checkpoints: row[13] ? JSON.parse(row[13]) : []
-          } as Match
-        } catch (e) { return null }
-    }).filter((m): m is Match => m !== null)
+    const tq = encodeURIComponent(`SELECT * WHERE O = '${groupId}' ORDER BY B DESC`);
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tq=${tq}&sheet=${SHEET_NAME}`;
 
-    return NextResponse.json({ matches })
+    const res = await fetch(url);
+    const text = await res.text();
+    const json = JSON.parse(text.substring(47).slice(0, -2));
 
+    const matches = json.table.rows.map(mapGVizRowToMatch).filter(Boolean);
+
+    return NextResponse.json({ matches });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to calculate analytics' }, { status: 500 })
+    return NextResponse.json({ error: 'Analytics failed' }, { status: 500 });
   }
 }

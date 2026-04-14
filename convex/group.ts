@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
-// 1. Get Group details by ID
 export const getById = query({
   args: { groupId: v.id("groups") },
   handler: async (ctx, args) => {
@@ -9,7 +8,6 @@ export const getById = query({
   },
 });
 
-// 2. Create a new Group (For Admins)
 export const createGroup = mutation({
   args: { name: v.string(), adminId: v.id("users") },
   handler: async (ctx, args) => {
@@ -32,7 +30,6 @@ export const createGroup = mutation({
   },
 });
 
-// 3. Find group by invite code (For Joiners)
 export const getByInviteCode = query({
   args: { inviteCode: v.string() },
   handler: async (ctx, args) => {

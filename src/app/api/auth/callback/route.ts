@@ -2,6 +2,8 @@ import { WorkOS } from '@workos-inc/node';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { SignJWT } from 'jose';
+import { fetchQuery } from 'convex/nextjs';
+import { api } from "../../../../../convex/_generated/api";
 
 const workos = new WorkOS(process.env.WORKOS_API_KEY);
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -20,9 +22,11 @@ export async function GET(req: Request) {
       code,
     });
 
-    const token = await new SignJWT({ 
-      userId: response.user.id, 
-      email: response.user.email 
+    const workosUser = response.user;
+
+    const token = await new SignJWT({
+      userId: workosUser.id,
+      email: workosUser.email
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
@@ -38,14 +42,16 @@ export async function GET(req: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    const profile = await fetchQuery(api.users.getProfile, { workosId: user.id });
+    const profile = await fetchQuery(api.users.getProfile, { workosId: workosUser.id });
 
     if (!profile?.isOnboarded || !profile.groupId) {
       return NextResponse.redirect(new URL('/onboarding', req.url));
     }
 
-    return NextResponse.redirect(new URL('/home/${profile.groupId}', req.url));
+    return NextResponse.redirect(new URL(`/home/${profile.groupId}`, req.url));
+
   } catch (error) {
+    console.error("Auth Callback Error:", error);
     return NextResponse.redirect(new URL('/login?error=auth_failed', req.url));
   }
 }

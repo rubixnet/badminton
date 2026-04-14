@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
+import { api, fullApi } from "../../../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { MatchList } from "@/components/match-list";
 import { CreateMatchDialog } from "@/components/create-match-dialog";
@@ -13,6 +13,8 @@ import { ArrowUpRight } from "lucide-react";
 
 import type { Match } from "@/types/match";
 import type { Doc } from "../../../../../convex/_generated/dataModel";
+import { Z_BEST_COMPRESSION } from "zlib";
+import { WheelchairIcon } from "hugeicons-react";
 
 interface HomeClientProps {
   user: Doc<"users">;
@@ -29,10 +31,7 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   const isMobile = useMobile();
   const router = useRouter();
 
-  const syncToSheets = useAction(api.matches.recordMatchToSheets);
-
   const fetchMatches = useCallback(async (pageNum: number, isBackground = false) => {
-    if (isLoading && !isBackground && pageNum !== 1) return;
     if (!isBackground) setIsLoading(true);
 
     try {
@@ -59,49 +58,45 @@ export default function HomeClient({ user, group }: HomeClientProps) {
     } finally {
       if (!isBackground) setIsLoading(false);
     }
-  }, [group._id, isLoading]);
+  }, [group._id]);
 
   useEffect(() => {
     fetchMatches(1);
-  }, []);
+  }, [fetchMatches]);
 
-  const handleMatchCreated = async (newMatch: Match) => {
-    const matchWithMeta: Match = {
-      ...newMatch,
-      id: `match_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      winner: newMatch.winner ?? (
-        newMatch.team1.score > newMatch.team2.score ? "team1" : 
-        newMatch.team2.score > newMatch.team1.score ? "team2" : "draw"
-      ),
-    };
-
-    setMatches((prev) => [matchWithMeta, ...prev]);
-    setIsOpen(false);
-
-    try {
-      await syncToSheets({
-        groupId: group._id,
-        userId: user._id,
-        userRole: user.role ?? "member",
-        matchData: matchToSync(matchWithMeta), 
-      });
-
-      console.log("Match archived successfully to 5TB storage.");
-    } catch (error) {
-      console.error("Failed to sync match to Google Sheets:", error);
-      fetchMatches(1, true);
-    }
+const handleMatchCreated = async (newMatch: Match) => {
+  const matchWithMeta: Match = {
+    ...newMatch,
+    id: `match_${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    winner: newMatch.winner ?? (
+      newMatch.team1.score > newMatch.team2.score ? "team1" : 
+      newMatch.team2.score > newMatch.team1.score ? "team2" : "draw"
+    ),
   };
 
-  const matchToSync = (m: Match) => ({
-    id: m.id,
-    createdAt: m.createdAt,
-    winner: m.winner,
-    team1: m.team1,
-    team2: m.team2,
-    checkpoints: m.checkpoints || [],
-  });
+  setMatches((prev) => [matchWithMeta, ...prev]);
+  setIsOpen(false);
+
+  try {
+    const response = await fetch('/api/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...matchWithMeta,
+        groupId: group._id, 
+        userId: user._id,   
+      }),
+    });
+
+    if (!response.ok) throw new Error("Google Sync Failed");
+    
+    console.log("Match archived to 5TB storage.");
+  } catch (error) {
+    console.error("Failed to sync match:", error);
+    fetchMatches(1, true);
+  }
+};
 
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/30">

@@ -19,6 +19,8 @@ const EXIT_DURATION_MS = 280;
 
 interface CreateMatchScreenProps {
   overlay?: boolean;
+  user: { _id: string };
+  group: { _id: string };
 }
 
 function getWinner(match: Match) {
@@ -58,7 +60,7 @@ function persistMatch(match: Match) {
   );
 }
 
-export function CreateMatchScreen({ overlay = false }: CreateMatchScreenProps) {
+export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchScreenProps) {
   const router = useRouter();
   const isMobile = useMobile();
   const [mounted, setMounted] = useState(false);
@@ -109,30 +111,32 @@ export function CreateMatchScreen({ overlay = false }: CreateMatchScreenProps) {
   };
 
   const handleMatchCreated = async (submittedMatch: Match) => {
-    const fallbackMatch = createLocalMatch(submittedMatch);
+  const fallbackMatch = createLocalMatch(submittedMatch);
 
-    try {
-      const response = await fetch("/api/matches", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submittedMatch),
-      });
+  try {
+    const response = await fetch("/api/matches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...submittedMatch,
+        groupId: group._id,
+        userId: user._id,   
+      }),
+    });
 
-      if (response.ok) {
-        const savedMatch = (await response.json()) as Match;
-        persistMatch(savedMatch);
-      } else {
-        persistMatch(fallbackMatch);
-      }
-    } catch (error) {
-      console.error("Error saving match:", error);
+    if (response.ok) {
+      const savedMatch = (await response.json()) as Match;
+      persistMatch(savedMatch); 
+    } else {
       persistMatch(fallbackMatch);
     }
+  } catch (error) {
+    console.error("Error saving match:", error);
+    persistMatch(fallbackMatch);
+  }
 
-    closeScreen();
-  };
+  closeScreen();
+};
 
   if (!mounted || !isMobile) {
     return null;
