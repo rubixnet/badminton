@@ -8,7 +8,6 @@ const SHEET_NAME = "Sheet1";
 export async function GET(request: NextRequest) {
   try {
     if (!SHEET_ID) {
-      console.error("Missing GOOGLE_SHEET_ID");
       return NextResponse.json([]);
     }
 
@@ -17,10 +16,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20");
 
     const sheets = await getGoogleSheetsClient();
-
     // First, get the total number of rows to calculate the range
     // We'll just read column A to be efficient
-    const countResponse = await sheets.spreadsheets.values.get({
+    const countResponse = await sheets.spreadsheets.values.get({ 
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!A:A`,
     });
@@ -100,7 +98,6 @@ export async function GET(request: NextRequest) {
             checkpoints: row[13] ? JSON.parse(row[13]) : [],
           } as Match;
         } catch (e) {
-          console.error("Error parsing row:", e);
           return null;
         }
       })
@@ -114,7 +111,6 @@ export async function GET(request: NextRequest) {
       totalPages,
     });
   } catch (error) {
-    console.error("Error fetching matches:", error);
     return NextResponse.json({ matches: [], total: 0, page: 1, totalPages: 0 });
   }
 }
@@ -122,7 +118,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     if (!SHEET_ID) {
-      console.error("Missing GOOGLE_SHEET_ID");
       return NextResponse.json(
         { error: "Server configuration error" },
         { status: 500 },
@@ -202,10 +197,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("Match saved successfully to Google Sheets");
     return NextResponse.json(match);
   } catch (error) {
-    console.error("Error creating match:", error);
     return NextResponse.json(
       { error: "Failed to create match" },
       { status: 500 },
@@ -245,7 +238,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting match:", error);
     return NextResponse.json(
       { error: "Failed to delete match" },
       { status: 500 },
@@ -313,7 +305,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error updating match:", error);
     return NextResponse.json(
       { error: "Failed to update match" },
       { status: 500 },

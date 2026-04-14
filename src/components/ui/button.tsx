@@ -30,6 +30,7 @@ const buttonVariants = cva(
         xs: "h-7 gap-1 rounded-md px-[calc(--spacing(2)-1px)] text-sm before:rounded-[calc(var(--radius-md)-1px)] sm:h-6 sm:text-xs [&_svg:not([class*='size-'])]:size-4 sm:[&_svg:not([class*='size-'])]:size-3.5",
       },
       variant: {
+        main:'bg-[linear-gradient(to_bottom,rgba(0,136,255,0.7)_0%,rgba(0,136,255,0.7)_18%,rgba(0,136,255,0.75)_36%,rgba(0,136,255,1)_66%,#0077ff_100%)] border-blue-500 shadow-none',
         default:
           "not-disabled:inset-shadow-[0_1px_--theme(--color-white/16%)] border-primary bg-primary text-primary-foreground shadow-primary/24 shadow-xs hover:bg-primary/90 data-pressed:bg-primary/90 [:active,[data-pressed]]:inset-shadow-[0_1px_--theme(--color-black/8%)] [:disabled,:active,[data-pressed]]:shadow-none",
         destructive:

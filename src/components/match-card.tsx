@@ -43,7 +43,8 @@ export function MatchCard({ match }: MatchCardProps) {
             </div>
             {!isMobile && (
               <div className="text-sm text-muted-foreground text-center font-medium">
-                {getTeamNames(match.team1).split(" & ")[0]}
+                {getTeamNames(match.team1).split(" & ")[0]} {" "}
+                {getTeamNames(match.team1).split(" & ")[1]}
               </div>
             )}
           </div>
@@ -67,7 +68,8 @@ export function MatchCard({ match }: MatchCardProps) {
             </div>
             {!isMobile && (
               <div className="text-sm text-muted-foreground text-center font-medium">
-                {getTeamNames(match.team2).split(" & ")[0]}
+                {getTeamNames(match.team2).split(" & ")[0]} {" "}
+                {getTeamNames(match.team2).split(" & ")[1]}
               </div>
             )}
           </div>

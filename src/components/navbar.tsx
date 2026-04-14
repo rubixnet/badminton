@@ -34,7 +34,6 @@ export function Navbar({
                 {title}
               </h1>
             </div>
-            {/* // added theme change, commenting it for now */}
             <div className="flex items-stretch">
               {/* {showThemeToggle && (
                 <Button

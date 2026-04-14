@@ -10,7 +10,6 @@ export async function GET(request: NextRequest) {
     if (!SHEET_ID) return NextResponse.json({ error: 'Config error' }, { status: 500 })
 
     const sheets = await getGoogleSheetsClient()
-    // Fetch all data for analytics
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!A2:N`,
@@ -18,7 +17,6 @@ export async function GET(request: NextRequest) {
 
     const rows = response.data.values || []
     
-    // Parse matches
     const matches: Match[] = rows.map(row => {
          try {
           if (row[0] && row[0].trim().startsWith('{')) return JSON.parse(row[0])
@@ -49,7 +47,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ matches })
 
   } catch (error) {
-    console.error('Error calculating analytics:', error)
     return NextResponse.json({ error: 'Failed to calculate analytics' }, { status: 500 })
   }
 }

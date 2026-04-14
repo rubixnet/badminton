@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Cal_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AnchoredToastProvider, ToastProvider } from "@/components/ui/toast";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "@/components/providers";
 
 const calSans = Cal_Sans({
   variable: "--font-geist-sans",
@@ -32,19 +31,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" style={{ colorScheme: "dark" }}>
       <body className={`${calSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-            <ToastProvider>
-              <AnchoredToastProvider>
-                {children}
-                {modal}
-              </AnchoredToastProvider>
-            </ToastProvider>
-        </ThemeProvider>
+        <Providers>
+          {children}
+          {modal}
+        </Providers>
       </body>
     </html>
   );

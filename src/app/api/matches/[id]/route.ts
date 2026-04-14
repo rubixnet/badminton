@@ -16,7 +16,6 @@ export async function DELETE(
     const id = params.id;
     const sheets = await getGoogleSheetsClient();
 
-    // 1. Find the row index
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!A:A`,
@@ -29,7 +28,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
 
-    // Get Sheet ID
     const spreadsheet = await sheets.spreadsheets.get({
       spreadsheetId: SHEET_ID,
     });
@@ -59,7 +57,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting match:", error);
     return NextResponse.json(
       { error: "Failed to delete match" },
       { status: 500 },
@@ -79,7 +76,6 @@ export async function PUT(
     const body = await request.json();
     const sheets = await getGoogleSheetsClient();
 
-    // 1. Find the row index
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
       range: `${SHEET_NAME}!A:A`,
@@ -132,7 +128,6 @@ export async function PUT(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error updating match:", error);
     return NextResponse.json(
       { error: "Failed to update match" },
       { status: 500 },

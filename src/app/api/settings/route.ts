@@ -41,7 +41,6 @@ export async function GET() {
       bonusEnabled: settings.bonusEnabled ?? false,
     });
   } catch (error) {
-    console.error("Error loading form settings:", error);
     return NextResponse.json({ bonusEnabled: false });
   }
 }
@@ -73,7 +72,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ persisted: true, ...nextSettings });
   } catch (error) {
-    console.error("Error saving form settings:", error);
     return NextResponse.json(
       { error: "Failed to save form settings" },
       { status: 500 },
