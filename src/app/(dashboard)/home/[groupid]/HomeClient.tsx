@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAction } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { MatchList } from "@/components/match-list";
 import { CreateMatchDialog } from "@/components/create-match-dialog";
@@ -12,7 +12,7 @@ import { Navbar } from "@/components/navbar";
 import { ArrowUpRight } from "lucide-react";
 
 import type { Match } from "@/types/match";
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { Doc } from "../../../../../convex/_generated/dataModel";
 
 interface HomeClientProps {
   user: Doc<"users">;
@@ -133,8 +133,7 @@ export default function HomeClient({ user, group }: HomeClientProps) {
             </div>
           )}
         </main>
-
-        {!isMobile && (
+          {!isMobile && (
           <CreateMatchDialog
             open={isOpen}
             onOpenChange={setIsOpen}

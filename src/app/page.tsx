@@ -1,37 +1,21 @@
-import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
-import { redirect } from 'next/navigation';
-import { fetchQuery } from "convex/nextjs";
-import { api } from "../../convex/_generated/api";
-import HomeClient from "./HomeClient";
+"use client"
+import { buttonVariants } from '@/components/ui/button';
+import Link from "next/link"
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+export default function Home() {
+    return (
+        <div className="min-h-screen flex justify-center items-center">
+            <div className="space-y-4 flex flex-col items-center">
+                <h1 className="text-5xl font-medium tracking-tight">Badminton Score Tracker</h1>
+                <p className="text-xl text-center text-balance max-w-2xl text-zinc-500">
+                    A simple app with great UI to track your badminton matches and scores.
+                </p>
 
-export default async function Page() {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-
-    if (!token) {
-        redirect('/login');
-    }
-
-    let user;
-    try {
-        const { payload } = await jwtVerify(token, JWT_SECRET);
-        user = { id: payload.userId as string };
-    } catch (err) {
-        redirect('/login');
-    }
-
-    console.log('[HOME] Fetching user profile from Convex...');
-    const profile = await fetchQuery(api.users.getProfile, { workosId: user.id });
-    console.log('[HOME] User profile:', profile);
-    
-    if (!profile || !profile.isOnboarded || !profile.groupId) {
-        console.log('[HOME] User not fully onboarded, redirecting to onboarding');
-        redirect('/onboarding');
-    }
-
-    const group = await fetchQuery(api.group.getById, { groupId: profile.groupId });
-    return <HomeClient user={profile} group={group} />;
+                <div className="gap-2 flex">
+                    <Link className={`${buttonVariants({ variant: "secondary" })}`} href="/">Learn More</Link>
+                    <Link className={`${buttonVariants({ variant: "main" })}`} href="/login">Log in</Link>
+                </div>
+            </div>
+        </div>
+    )
 }
