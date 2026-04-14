@@ -38,7 +38,13 @@ export async function GET(req: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return NextResponse.redirect(new URL('/', req.url));
+    const profile = await fetchQuery(api.users.getProfile, { workosId: user.id });
+
+    if (!profile?.isOnboarded || !profile.groupId) {
+      return NextResponse.redirect(new URL('/onboarding', req.url));
+    }
+
+    return NextResponse.redirect(new URL('/home/${profile.groupId}', req.url));
   } catch (error) {
     return NextResponse.redirect(new URL('/login?error=auth_failed', req.url));
   }

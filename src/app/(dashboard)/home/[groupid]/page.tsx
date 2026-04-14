@@ -23,15 +23,14 @@ export default async function Page() {
         redirect('/login');
     }
 
-    console.log('[HOME] Fetching user profile from Convex...');
     const profile = await fetchQuery(api.users.getProfile, { workosId: user.id });
-    console.log('[HOME] User profile:', profile);
-    
     if (!profile || !profile.isOnboarded || !profile.groupId) {
         console.log('[HOME] User not fully onboarded, redirecting to onboarding');
         redirect('/onboarding');
     }
-
+    if (profile?.groupId !== groupId) {
+        redirect(`/home/${profile.groupId}`);
+    }
     const group = await fetchQuery(api.group.getById, { groupId: profile.groupId });
     return <HomeClient user={profile} group={group} />;
 }

@@ -10,19 +10,37 @@ export async function GET(request: NextRequest) {
     if (!SHEET_ID) {
       return NextResponse.json([]);
     }
-
+    
     const { searchParams } = new URL(request.url);
+    const groupId = searchParams.get("groupId");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = (parseInt(searchParams.get('page') || '1') - 1) * limit;
 
     const sheets = await getGoogleSheetsClient();
     // First, get the total number of rows to calculate the range
     // We'll just read column A to be efficient
     const countResponse = await sheets.spreadsheets.values.get({ 
       spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A:A`,
+      range: `${SHEET_NAME}!A:P`,
     });
 
+
+    const query = encodeURIComponent(
+      `SELECT * WHERE O = '${groupId}' ORDER BY A DESC LIMIT ${limit} OFFSET ${offset}`,
+    );
+
+
+    const url = `https://docs.google..com/spreadsheets/d/${SHEET_ID}/gviz/tq?tq=${query}&sheet=${SHEET_NAME}`;
+
+    const result = await fetch(url);
+    const text = await result.text();
+
+    // on doing the above thing google is returns a "google.visualization.Query.setResponse(...)" wrapper. 
+
+    const json = JSON.parse(text.substring(47).slice(0, -2)); // we removed the first 47 characters from the responsove
+
+    
     const totalRows = countResponse.data.values?.length || 0;
     // If totalRows is 0 or 1 (header only), return empty
     if (totalRows <= 1) {
@@ -166,7 +184,7 @@ export async function POST(request: NextRequest) {
     // A: ID, B: CreatedAt, C: Winner, D: T1Score, E: T2Score
     // F: T1P1Name, G: T1P1Bonus, H: T1P2Name, I: T1P2Bonus
     // J: T2P1Name, K: T2P1Bonus, L: T2P2Name, M: T2P2Bonus
-    // N: Checkpoints
+    // N: Checkpoints, O: groupId, P: userId
     const values = [
       [
         match.id,
@@ -186,7 +204,7 @@ export async function POST(request: NextRequest) {
       ],
     ];
 
-    const range = `${SHEET_NAME}!A:N`;
+    const range = `${SHEET_NAME}!A:P`;
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,

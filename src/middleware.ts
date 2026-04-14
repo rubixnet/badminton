@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/home';
+  const isAuthPage = pathname === '/login' || pathname === '/';
 
   return NextResponse.next();
 }
@@ -12,9 +12,7 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
-    '/home',
     '/login',
-    '/signup',
     '/dashboard',
     '/admin',
     '/analytics',
