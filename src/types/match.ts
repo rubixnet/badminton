@@ -24,4 +24,5 @@ export interface Match {
     winner?: "team1" | "team2" | "draw";
     groupId: string;
     userId: string;
+    userName: string;
 }

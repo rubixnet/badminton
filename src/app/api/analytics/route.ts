@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mapGVizRowToMatch } from "@/lib/match-mapping";
+import { mapGoogleVisualizationRowToMatch } from "@/lib/match-mapping";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = "Sheet1";
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const text = await res.text();
     const json = JSON.parse(text.substring(47).slice(0, -2));
 
-    const matches = json.table.rows.map(mapGVizRowToMatch).filter(Boolean);
+    const matches = json.table.rows.map(mapGoogleVisualizationRowToMatch).filter(Boolean);
 
     return NextResponse.json({ matches });
   } catch (error) {

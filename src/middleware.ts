@@ -1,23 +1,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
-export function middleware(request: NextRequest) {
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+
+export async function middleware(request: NextRequest) {
+  const token = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
-  const isAuthPage = pathname === '/login' || pathname === '/';
+  if (!token) {
+    return NextResponse.next();
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    
+    const groupId = payload.groupId as string | undefined;
+
+    const isAuthPage = pathname === '/login' || pathname === '/';
+    const isInvitePage = pathname.startsWith('/invite');
+
+    if (groupId && (isAuthPage || isInvitePage)) {
+      return NextResponse.redirect(new URL(`/home/${groupId}`, request.url));
+    }
+  } catch (err) {
+    const response = NextResponse.next();
+    response.cookies.delete('session');
+    return response;
+  }
 
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    '/',
-    '/login',
-    '/dashboard',
-    '/admin',
-    '/analytics',
-    '/onboarding',
-    '/invite/:path*',
-    '/matches/:path*',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -78,12 +78,13 @@ export async function POST(request: NextRequest) {
       body.team2.players[1]?.bonusPoints || 0,
       JSON.stringify(body.checkpoints || []),
       body.groupId,
-      body.userId
+      body.userId,
+      body.userName
     ]];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID!,
-      range: `${SHEET_NAME}!A:P`,
+      range: `${SHEET_NAME}!A:Q`,
       valueInputOption: "RAW",
       requestBody: { values },
     });
