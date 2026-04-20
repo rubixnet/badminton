@@ -768,7 +768,6 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        {/* Row 2: Win Rate Trends */}
         <Card>
           <CardHeader>
             <CardTitle>Win Rate Trends</CardTitle>
@@ -790,7 +789,6 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Row 3: Match Activity Calendar */}
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Match Activity</CardTitle>

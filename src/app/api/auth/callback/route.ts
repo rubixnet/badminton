@@ -23,14 +23,20 @@ export async function GET(req: Request) {
     });
 
     const workosUser = response.user;
+    const profile = await fetchQuery(api.users.getProfile, { workosId: workosUser.id });
+
+    if (!profile) {
+      return NextResponse.redirect(new URL('/login?error=no_profile', req.url));
+    }
 
     const token = await new SignJWT({
       userId: workosUser.id,
-      email: workosUser.email
+      email: workosUser.email,
+      groupId: profile.groupId
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('7d')
+      .setExpirationTime('60d')
       .sign(JWT_SECRET);
 
     const cookieStore = await cookies();
@@ -39,12 +45,10 @@ export async function GET(req: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 60,
     });
 
-    const profile = await fetchQuery(api.users.getProfile, { workosId: workosUser.id });
-
-    if (!profile?.isOnboarded || !profile.groupId) {
+    if (!profile.isOnboarded || !profile.groupId) {
       return NextResponse.redirect(new URL('/onboarding', req.url));
     }
 

@@ -25,6 +25,7 @@ export function mapStandardRowToMatch(row: any): Match | null {
             checkpoints: row[13] ? JSON.parse(row[13]) : [],
             groupId: row[14],
             userId: row[15],
+            userName: row[16],
         } as Match;
     } catch (e) { return null; }
 }
@@ -55,6 +56,7 @@ export function mapGoogleVisualizationRowToMatch(row: any): Match | null {
             checkpoints: cellsData[13]?.v ? JSON.parse(cellsData[13]?.v) : [],
             groupId: cellsData[14]?.v,
             userId: cellsData[15]?.v,
+            userName: cellsData[16]?.v,
         } as Match;
     } catch (e) { return null; }
 }

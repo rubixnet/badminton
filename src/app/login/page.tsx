@@ -17,7 +17,7 @@ export default function LoginPage() {
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <GalleryVerticalEnd className="size-6" />
             </div>
-            <span className="text-2xl font-bold tracking-tight">Log In to Badminton Tracker</span>
+            <span className="text-2xl font-bold tracking-tight">Sign Up for Badminton Tracker</span>
           </Link>
           <Button
             variant="outline"

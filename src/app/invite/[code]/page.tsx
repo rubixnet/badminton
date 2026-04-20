@@ -33,6 +33,7 @@ export default async function InvitePage({
                     {inviteData.groupName}
                 </h1>
 
+
                 <Button  variant="main">
                     <Link href={`/api/auth/signup?invite=${params.code}&via=${searchParams.via}`}>
                         Join & Get Started

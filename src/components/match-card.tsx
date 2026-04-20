@@ -127,12 +127,11 @@ export function MatchCard({ match }: MatchCardProps) {
             )}
 
             <div className="text-xs text-muted-foreground font-mono pt-2">
-              {new Date(match.createdAt).toLocaleString()}
+              {new Date(match.createdAt).toLocaleString()} by {match.userId}
             </div>
           </div>
         )}
       </div>
     </Card>
-
   );
 }
