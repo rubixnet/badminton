@@ -8,19 +8,17 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
+  const isPublicAuthPage = pathname === '/' || pathname === '/login' || pathname.startsWith('/invite');
+
   if (!token) {
     return NextResponse.next();
   }
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    
     const groupId = payload.groupId as string | undefined;
 
-    const isAuthPage = pathname === '/login' || pathname === '/';
-    const isInvitePage = pathname.startsWith('/invite');
-
-    if (groupId && (isAuthPage || isInvitePage)) {
+    if (groupId && isPublicAuthPage) {
       return NextResponse.redirect(new URL(`/home/${groupId}`, request.url));
     }
   } catch (err) {
@@ -33,7 +31,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

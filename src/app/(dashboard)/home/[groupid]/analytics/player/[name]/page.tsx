@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { Navbar } from "@/components/navbar"; // Using Navbar instead of Header
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -369,6 +370,7 @@ function calculatePlayerStats(
 export default function PlayerProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const groupId = params.groupid as string; // FIX 1: Extract the groupId
   const playerName = decodeURIComponent(params.name as string);
 
   const [matches, setMatches] = useState<Match[]>([]);
@@ -380,10 +382,13 @@ export default function PlayerProfilePage() {
   const [strictMode, setStrictMode] = useState(false);
 
   useEffect(() => {
+    if (!groupId) return;
+
     const fetchData = async () => {
       try {
-        // First, try to get cached data from localStorage (same as main analytics page)
-        const stored = localStorage.getItem("badminton_analytics_matches");
+        // FIX 2: Group specific caching
+        const cacheKey = `badminton_analytics_matches_${groupId}`;
+        const stored = localStorage.getItem(cacheKey);
         let loadedFromCache = false;
         if (stored) {
           try {
@@ -409,28 +414,30 @@ export default function PlayerProfilePage() {
           }
         }
 
-        // If no cached data, fetch from API
+        // FIX 3: Add ?groupId= to the API fetch
         if (!loadedFromCache) {
-            const res = await fetch('/api/analytics');
-            const data = await res.json();
-            if (data.matches) {
-              setMatches(data.matches);
-              setStrictMode(data.strictMode || false);
-              localStorage.setItem(
-                "badminton_analytics_matches",
-                JSON.stringify({ matches: data.matches, strictMode: data.strictMode }),
-              );
-
-              const players = new Set<string>();
-              data.matches.forEach((m: Match) => {
-                m.team1.players.forEach(
-                  (p) => p.name && players.add(p.name.trim()),
-                );
-                m.team2.players.forEach(
-                  (p) => p.name && players.add(p.name.trim()),
-                );
-              });
-              setAllPlayers(Array.from(players).sort());
+            const res = await fetch(`/api/analytics?groupId=${groupId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.matches) {
+                  setMatches(data.matches);
+                  setStrictMode(data.strictMode || false);
+                  localStorage.setItem(
+                    cacheKey,
+                    JSON.stringify({ matches: data.matches, strictMode: data.strictMode }),
+                  );
+    
+                  const players = new Set<string>();
+                  data.matches.forEach((m: Match) => {
+                    m.team1.players.forEach(
+                      (p) => p.name && players.add(p.name.trim()),
+                    );
+                    m.team2.players.forEach(
+                      (p) => p.name && players.add(p.name.trim()),
+                    );
+                  });
+                  setAllPlayers(Array.from(players).sort());
+                }
             }
         }
       } catch (error) {
@@ -440,7 +447,7 @@ export default function PlayerProfilePage() {
       }
     };
     fetchData();
-  }, []);
+  }, [groupId]);
 
   const matchCounts = useMemo(() => {
     const playerMatches = matches.filter(
@@ -487,14 +494,13 @@ export default function PlayerProfilePage() {
     }))
     .sort((a, b) => b.matches - a.matches);
 
+  // FIX 4: Correct routing to include the dynamic groupId
+  const backLink = `/home/${groupId}/analytics`;
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        {/* <Header title="Player Profile" showThemeToggle={true} showCreateButton={false} showChartColorOptions={true} navigationItems={[
-          { label: "Home", onClick: () => router.push("/") },
-          { label: "Analytics", onClick: () => router.push("/analytics") },
-        ]} /> */}
-        <main className="container mx-auto mt-10 px-4 py-4 max-w-4xl">
+      <div className="min-h-screen bg-background overflow-x-hidden">
+        <main className="max-w-4xl mx-auto w-full px-4 md:px-6 py-6 md:py-10">
           <Skeleton className="h-8 w-48 mb-6" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[...Array(4)].map((_, i) => (
@@ -509,14 +515,11 @@ export default function PlayerProfilePage() {
 
   if (!allPlayers.includes(playerName)) {
     return (
-      <div className="min-h-screen bg-background">
-        {/* <Header title="Player Profile" showThemeToggle={true} showCreateButton={false} showChartColorOptions={true} navigationItems={[
-          { label: "Home", onClick: () => router.push("/") },
-          { label: "Analytics", onClick: () => router.push("/analytics") },
-        ]} /> */}
-        <main className="container mx-auto px-4 py-4 mt-10 max-w-4xl">
+      <div className="min-h-screen bg-background overflow-x-hidden">
+        <Navbar title="Player Not Found" />
+        <main className="max-w-4xl mx-auto w-full px-4 md:px-6 py-6 md:py-10">
           <Link
-            href="/analytics"
+            href={backLink}
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -542,22 +545,16 @@ export default function PlayerProfilePage() {
   const displayedResults = showAllRecent ? stats.recentResults : stats.last5;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* <Header title={playerName} showThemeToggle={true} showCreateButton={false} showChartColorOptions={true} navigationItems={[
-        { label: "Home", onClick: () => router.push("/") },
-        { label: "Analytics", onClick: () => router.push("/analytics") },
-      ]} /> */}
-      <main className="container mx-auto px-4 py-4 mt-10 max-w-4xl">
-        {/* Back link */}
+    <div className="min-h-screen bg-background overflow-x-hidden">
+      <main className="max-w-4xl mx-auto w-full px-4 md:px-6 py-6 md:py-10">
         <Link
-          href="/analytics"
+          href={backLink}
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 text-sm"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Analytics
         </Link>
 
-        {/* Player Name */}
         <div className="flex items-center gap-3 mb-2">
           <h1 className="text-3xl font-bold">{playerName}</h1>
           {strictMode && (
@@ -579,14 +576,12 @@ export default function PlayerProfilePage() {
         <div className="flex flex-wrap gap-2 mb-8">
           <Button
             variant={matchFilter === "all" ? "default" : "outline"}
-            size="sm"
             onClick={() => setMatchFilter("all")}
           >
             All ({matchCounts.all})
           </Button>
           <Button
             variant={matchFilter === "doubles" ? "default" : "outline"}
-            size="sm"
             onClick={() => setMatchFilter("doubles")}
             disabled={matchCounts.doubles === 0}
           >
@@ -594,7 +589,6 @@ export default function PlayerProfilePage() {
           </Button>
           <Button
             variant={matchFilter === "singles" ? "default" : "outline"}
-            size="sm"
             onClick={() => setMatchFilter("singles")}
             disabled={matchCounts.singles === 0}
           >
@@ -739,14 +733,15 @@ export default function PlayerProfilePage() {
             {(stats.bestPartner || stats.nemesis || stats.favoriteVictim) && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 {stats.bestPartner && (
-                  <Card>
+                  <Card className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => router.push(`/home/${groupId}/analytics/player/${encodeURIComponent(stats.bestPartner!.name)}`)}>
                     <CardContent className="pt-6">
                       <p className="text-xs text-muted-foreground mb-1">
                         Best Partner
                       </p>
                       <Link
-                        href={`/analytics/player/${encodeURIComponent(stats.bestPartner.name)}`}
+                        href={`/home/${groupId}/analytics/player/${encodeURIComponent(stats.bestPartner.name)}`}
                         className="font-medium hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {stats.bestPartner.name}
                       </Link>
@@ -759,14 +754,15 @@ export default function PlayerProfilePage() {
                 )}
 
                 {stats.favoriteVictim && (
-                  <Card>
+                  <Card className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => router.push(`/home/${groupId}/analytics/player/${encodeURIComponent(stats.favoriteVictim!.name)}`)}>
                     <CardContent className="pt-6">
                       <p className="text-xs text-muted-foreground mb-1">
                         Most Wins Against
                       </p>
                       <Link
-                        href={`/analytics/player/${encodeURIComponent(stats.favoriteVictim.name)}`}
+                        href={`/home/${groupId}/analytics/player/${encodeURIComponent(stats.favoriteVictim.name)}`}
                         className="font-medium hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {stats.favoriteVictim.name}
                       </Link>
@@ -778,14 +774,15 @@ export default function PlayerProfilePage() {
                 )}
 
                 {stats.nemesis && (
-                  <Card>
+                  <Card className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => router.push(`/home/${groupId}/analytics/player/${encodeURIComponent(stats.nemesis!.name)}`)}>
                     <CardContent className="pt-6">
                       <p className="text-xs text-muted-foreground mb-1">
                         Nemesis
                       </p>
                       <Link
-                        href={`/analytics/player/${encodeURIComponent(stats.nemesis.name)}`}
+                        href={`/home/${groupId}/analytics/player/${encodeURIComponent(stats.nemesis.name)}`}
                         className="font-medium hover:underline"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {stats.nemesis.name}
                       </Link>
@@ -821,7 +818,7 @@ export default function PlayerProfilePage() {
                             className="flex items-center justify-between py-2 border-b last:border-0"
                           >
                             <Link
-                              href={`/analytics/player/${encodeURIComponent(opp.name)}`}
+                              href={`/home/${groupId}/analytics/player/${encodeURIComponent(opp.name)}`}
                               className="font-medium hover:underline"
                             >
                               {opp.name}
@@ -861,7 +858,7 @@ export default function PlayerProfilePage() {
                           >
                             <div className="flex items-center gap-2">
                               <Link
-                                href={`/analytics/player/${encodeURIComponent(partner.name)}`}
+                                href={`/home/${groupId}/analytics/player/${encodeURIComponent(partner.name)}`}
                                 className="font-medium hover:underline"
                               >
                                 {partner.name}

@@ -16,7 +16,7 @@ function SkeletonMatchCard() {
   const isMobile = useMobile();
 
   return (
-    <Card className="overflow-hidden rounded-none border border-border shadow-none w-full bg-muted/10">
+    <Card className="overflow-hidden rounded-none border border-border shadow-none w-full bg-background">
       <div className="p-4 md:p-6">
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-center gap-2 w-20">
@@ -83,7 +83,7 @@ export function MatchList({
 
   if (!isLoading && matches.length === 0) {
     return (
-      <Card className="p-6 rounded-none text-center shadow-none border border-border bg-muted/10">
+      <Card className="p-6 rounded-none text-center shadow-none border border-border bg-background/10">
         <p className="text-sm text-muted-foreground">No matches yet. Create one to get started.</p>
       </Card>
     );

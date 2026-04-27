@@ -4,9 +4,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* .radius-inherit {
-  border-radius: inherit;
-} */
+body{
+  scrollbar-width: thin;
+  scrollbar-color: gray transparent;
+}
 
 @theme inline {
   --color-background: var(--background);
@@ -107,9 +108,9 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(8.467% 0.00001 271.152);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.155 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);

@@ -19,7 +19,7 @@ const EXIT_DURATION_MS = 280;
 
 interface CreateMatchScreenProps {
   overlay?: boolean;
-  user: { _id: string };
+  user: { _id: string; name: string };
   group: { _id: string };
 }
 
@@ -121,6 +121,7 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
         ...submittedMatch,
         groupId: group._id,
         userId: user._id,   
+        userName: user.name,  
       }),
     });
 

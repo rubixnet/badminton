@@ -32,7 +32,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
   return (
     <Card
-      className="rounded-none overflow-hidden border border-border cursor-pointer transition-all hover:bg-muted/20 shadow-none w-full bg-muted/10"
+      className="rounded-none overflow-hidden border border-border cursor-pointer transition-all hover:bg-muted/5 shadow-none w-full bg-background/10"
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="p-4 md:p-6">
@@ -127,7 +127,7 @@ export function MatchCard({ match }: MatchCardProps) {
             )}
 
             <div className="text-xs text-muted-foreground font-mono pt-2">
-              {new Date(match.createdAt).toLocaleString()} by {match.userId}
+              {new Date(match.createdAt).toLocaleString()} by {match.userName}
             </div>
           </div>
         )}

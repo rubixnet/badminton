@@ -8,8 +8,8 @@ export const recordMatchToSheets = action({
   args: {
     groupId: v.string(),
     userId: v.string(),
-    userRole: v.string(),
     matchData: v.any(),
+    userName: v.string(),
   },
   handler: async (ctx, args) => {
     const { matchData } = args;
@@ -35,9 +35,9 @@ export const recordMatchToSheets = action({
       matchData.team2.players[1]?.name || "",
       matchData.team2.players[1]?.bonusPoints || 0,
       JSON.stringify(matchData.checkpoints || []),
-      args.groupId,  // Column O
-      args.userId,   // Column P
-      args.userRole, // Column Q
+      args.groupId,  
+      args.userId,   
+      args.userName
     ]];
 
     await sheets.spreadsheets.values.append({

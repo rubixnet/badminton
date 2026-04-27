@@ -1,47 +1,75 @@
 "use client";
 
-import { GalleryVerticalEnd} from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  
+  const invite = searchParams.get("invite");
+  const via = searchParams.get("via");
+
   const onGoogleLogin = () => {
-    window.location.href = "/api/auth/google";
+    const authUrl = new URL("/api/auth/google", window.location.origin);
+    
+    if (invite) authUrl.searchParams.set("invite", invite);
+    if (via) authUrl.searchParams.set("via", via);
+     
+    window.location.href = authUrl.toString();
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background p-6 text-foreground">
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <div className="w-full max-w-sm flex flex-col gap-8">
-          <Link href="/" className="flex flex-col items-center gap-2 self-center font-medium">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <GalleryVerticalEnd className="size-6" />
+    <div className="flex min-h-screen flex-col bg-background text-foreground font-sans selection:bg-primary/20">
+      <div className="flex flex-1 flex-col items-center justify-center p-6">
+        <div className="w-full max-w-sm flex flex-col gap-10">
+          
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Link href="/" className="text-md font-bold text-foreground/40 tracking-[0.2em] uppercase hover:text-primary transition-colors">
+              Badminton Tracker
+            </Link>
+            <div className="space-y-2">
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                {invite 
+                  ? "Sign in to accept your invitation and start tracking matches with your friends" 
+                  : "Sign in to start using Badminton Tracker."}
+              </p>
             </div>
-            <span className="text-2xl font-bold tracking-tight">Sign Up for Badminton Tracker</span>
-          </Link>
-          <Button
-            variant="outline"
-            type="button"
-            onClick={onGoogleLogin}
-            className="rounded-full py-5 !text-lg border-border bg-transparent hover:bg-secondary flex gap-3"
-          >
-            <svg className="size-6" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#4285F4" d="M23.622 12.273c0-.745-.068-1.462-.196-2.155h-11.45v4.077h6.54a5.591 5.591 0 0 1-2.397 3.673l3.875 3.011c2.264-2.084 3.628-5.153 3.628-8.606Z" />
-              <path fill="#34A853" d="M11.977 23.8c3.287 0 6.04-1.08 8.054-2.931l-3.875-3.011c-1.08.726-2.46 1.154-4.179 1.154-3.205 0-5.921-2.165-6.899-5.077H1.961v3.18A10.994 10.994 0 0 0 11.977 23.8Z" />
-              <path fill="#FBBC05" d="M5.078 13.935a6.599 6.599 0 0 1-.345-2.135c0-.74.125-1.457.345-2.135V6.485H1.961A10.994 10.994 0 0 0 1 11.8c0 1.745.404 3.395 1.118 4.88z" />
-              <path fill="#EA4335" d="M11.977 4.507c1.788 0 3.4.614 4.667 1.816l3.498-3.498C18.01 1.635 15.258.8 11.977.8 7.023.8 2.88 3.5 1.118 7.92l3.117 2.48C5.977 6.672 8.793 4.507 11.977 4.507Z" />
-            </svg>
-            Google
-          </Button>
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={onGoogleLogin}
+              className="w-full rounded-xl border-border/50 bg-background hover:bg-muted/50 flex items-center justify-center gap-3 text-base font-medium shadow-none transition-all active:scale-[0.98]"
+            >
+              <svg className="size-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </Button>
+            
+          </div>
         </div>
       </div>
-      <footer className="text-center text-sm text-muted-foreground flex justify-center gap-4 mt-auto px-6">
-        <Link href="/terms" className="hover:underline">
-          Terms of Service
-        </Link>
-        <Link href="/privacy" className="hover:underline">
-          Privacy Policy
-        </Link>
+      <footer className="bg-background w-full pb-12 mt-auto">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col items-center">
+          <div className="w-24 h-px bg-border/40 mb-8" />
+
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-6 w-full max-w-lg">
+            <Link href="/" className="text-[10px] font-bold text-foreground/40 tracking-widest uppercase hover:text-primary transition-colors">
+              Badminton Tracker
+            </Link>
+            <div className="flex items-center gap-8 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+              <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
+              <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );
