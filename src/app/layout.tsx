@@ -23,17 +23,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  modal,
 }: Readonly<{
   children: React.ReactNode;
-  modal: React.ReactNode;
 }>) {
   return (
     <html lang="en" className="dark" style={{ colorScheme: "dark" }}>
       <body className={`${calSans.variable} ${geistMono.variable} antialiased`}>
         <Providers>
           {children}
-          {modal}
         </Providers>
       </body>
     </html>
