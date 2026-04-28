@@ -25,14 +25,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (!group.isPublic) {
-      const cookieStore = await cookies();
-      const token = cookieStore.get("session")?.value;
-
-      if (!token) {
-        return NextResponse.json({ error: "Unauthorized access to private group" }, { status: 401 });
-      }
-
       try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get("session")?.value;
+
+        if (!token) {
+          return NextResponse.json({ error: "Unauthorized access to private group" }, { status: 401 });
+        }
+
         await jwtVerify(token, JWT_SECRET);
       } catch (e) {
         return NextResponse.json({ error: "Invalid session" }, { status: 401 });
@@ -42,10 +42,23 @@ export async function GET(request: NextRequest) {
     const tq = encodeURIComponent(`SELECT * WHERE O = '${groupId}' ORDER BY B DESC`);
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tq=${tq}&sheet=${SHEET_NAME}`;
 
-    const res = await fetch(url, { cache: 'no-store' }); // Ensure fresh data
+    const res = await fetch(url, { cache: 'no-store' }); 
     const text = await res.text();
     
-    const json = JSON.parse(text.substring(47).slice(0, -2));
+    if (text.trim().startsWith("<!DOCTYPE")) {
+      return NextResponse.json(
+        { matches: [], error: "Privacy settings blocking query engine" },
+        { status: 403 }
+      );
+    }
+
+    const jsonStr = text.substring(47).slice(0, -2);
+    const json = JSON.parse(jsonStr);
+
+    if (json.status === "error") {
+        return NextResponse.json({ matches: [], error: "Query syntax error" }, { status: 500 });
+    }
+
     const matches = json.table.rows.map(mapGoogleVisualizationRowToMatch).filter(Boolean);
 
     return NextResponse.json({ 

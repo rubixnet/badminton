@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
+import { fetchQuery, fetchMutation } from "convex/nextjs";
+import { api } from "../../../../convex/_generated/api";
 import { getGoogleSheetsClient } from "@/lib/google-sheets";
 import { mapGoogleVisualizationRowToMatch as mapgoogle } from "@/lib/match-mapping";
 import type { Match } from "@/types/match";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = "Sheet1";
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +21,18 @@ export async function GET(request: NextRequest) {
 
     if (!SHEET_ID || !groupId) return NextResponse.json({ matches: [] });
 
+    const group = await fetchQuery(api.group.getGroupById, { groupId: groupId as any });
+    if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 });
+
+    if (!group.isPublic) {
+      const cookieStore = await cookies();
+      const token = cookieStore.get("session")?.value;
+      if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      try { await jwtVerify(token, JWT_SECRET); } catch (e) {
+        return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+      }
+    }
+
     const tq = encodeURIComponent(
       `SELECT * WHERE O = '${groupId}' ORDER BY B DESC LIMIT ${limit} OFFSET ${offset}`
     );
@@ -25,10 +42,7 @@ export async function GET(request: NextRequest) {
     const text = await result.text();
 
     if (text.trim().startsWith("<!DOCTYPE")) {
-      return NextResponse.json(
-        { matches: [], error: "Privacy settings blocking query engine" },
-        { status: 403 }
-      );
+      return NextResponse.json({ matches: [], error: "Privacy settings blocking query engine" }, { status: 403 });
     }
 
     try {
@@ -58,6 +72,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // POST ALWAYS REQUIRES AUTH
+    const cookieStore = await cookies();
+    const token = cookieStore.get("session")?.value;
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const sheets = await getGoogleSheetsClient();
     const matchId = `match_${Date.now()}`;

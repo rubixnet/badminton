@@ -246,7 +246,6 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
             >
               <Plus className="h-7 w-7" />
             </button>
-
             <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
               <PopoverTrigger asChild>
                 <button className="flex flex-col items-center p-2 outline-none">

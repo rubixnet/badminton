@@ -10,18 +10,24 @@ export async function middleware(request: NextRequest) {
 
   const isPublicAuthPage = pathname === '/' || pathname === '/login' || pathname.startsWith('/invite');
 
-  if (!token) {
-    return NextResponse.next();
-  }
+  if (!token) return NextResponse.next();
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     const groupId = payload.groupId as string | undefined;
 
+    console.log({
+        message: "Middleware Check",
+        pathname,
+        hasGroupId: !!groupId,
+        isPublicAuthPage
+    });
+
     if (groupId && isPublicAuthPage) {
       return NextResponse.redirect(new URL(`/home/${groupId}`, request.url));
     }
   } catch (err) {
+    console.error("JWT Error:", err);
     const response = NextResponse.next();
     response.cookies.delete('session');
     return response;

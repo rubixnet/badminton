@@ -2,7 +2,7 @@ import { WorkOS } from '@workos-inc/node';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { SignJWT } from 'jose';
-import { fetchQuery, fetchMutation } from 'convex/nextjs'; 
+import { fetchQuery, fetchMutation } from 'convex/nextjs';
 import { api } from "../../../../../convex/_generated/api";
 
 const workos = new WorkOS(process.env.WORKOS_API_KEY);
@@ -11,7 +11,7 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
-  const state = searchParams.get('state'); 
+  const state = searchParams.get('state');
 
   if (!code) return NextResponse.redirect(new URL('/login', req.url));
 
@@ -22,17 +22,21 @@ export async function GET(req: Request) {
     });
 
     const workosUser = response.user;
-    
+
     let profile = await fetchQuery(api.users.getProfile, { workosId: workosUser.id });
 
     if (!profile) {
       profile = await fetchMutation(api.users.createProfile, {
         workosId: workosUser.id,
         email: workosUser.email,
-        isOnboarded: false, 
+        isOnboarded: false,
       });
     }
-    const token = await new SignJWT({ userId: workosUser.id, email: workosUser.email })
+    const token = await new SignJWT({
+      userId: workosUser.id,
+      email: workosUser.email,
+      groupId: profile?.groupId 
+    })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('60d')
@@ -48,7 +52,7 @@ export async function GET(req: Request) {
     });
 
     const onboardingUrl = new URL('/onboarding', req.url);
-    
+
     if (state) {
       try {
         const decoded = JSON.parse(Buffer.from(state, 'base64').toString());

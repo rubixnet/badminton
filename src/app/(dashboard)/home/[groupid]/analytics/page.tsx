@@ -740,7 +740,6 @@ export default function AnalyticsPage() {
 
         <Card className="rounded-2xl border-border/50 shadow-sm bg-card">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl flex items-center gap-2 text-balance"><Users className="h-5 w-5 text-primary opacity-60 shrink-0" /> Player Roster</CardTitle>
             <CardDescription>Click to view deep analytics for individual players</CardDescription>
           </CardHeader>
           <CardContent>
