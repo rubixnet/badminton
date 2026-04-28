@@ -4,8 +4,9 @@ import { getGoogleSheetsClient } from "@/lib/google-sheets";
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = "Sheet1";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { groupId } = await req.json();
     const sheets = await getGoogleSheetsClient();
     const response = await sheets.spreadsheets.values.get({
@@ -14,7 +15,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === params.id);
+    const rowIndex = rows.findIndex(r => r[0] === id);
 
     if (rowIndex === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (rows[rowIndex][14] !== groupId) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -33,8 +34,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   } catch (e) { return NextResponse.json({ error: "Delete failed" }, { status: 500 }); }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const sheets = await getGoogleSheetsClient();
     const response = await sheets.spreadsheets.values.get({
@@ -43,13 +45,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     });
 
     const rows = response.data.values || [];
-    const rowIndex = rows.findIndex(r => r[0] === params.id);
+    const rowIndex = rows.findIndex(r => r[0] === id);
 
     if (rowIndex === -1) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (rows[rowIndex][14] !== body.groupId) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
     const values = [[
-      params.id, body.createdAt, body.winner,
+      id, body.createdAt, body.winner,
       body.team1.score, body.team2.score,
       body.team1.players[0]?.name, body.team1.players[0]?.bonusPoints || 0,
       body.team1.players[1]?.name || "", body.team1.players[1]?.bonusPoints || 0,
