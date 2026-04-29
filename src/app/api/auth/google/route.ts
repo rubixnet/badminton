@@ -4,10 +4,10 @@ import { NextResponse } from 'next/server';
 const workos = new WorkOS(process.env.WORKOS_API_KEY);
 
 export async function GET(req: Request) {
+  const requestUrl = new URL(req.url);
   const { searchParams } = new URL(req.url);
   const clientId = process.env.WORKOS_CLIENT_ID;
-  const redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI || 
-                     `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/api/auth/callback`;
+  const redirectUri = new URL("/api/auth/callback", requestUrl.origin).toString();
 
   if (!clientId || !redirectUri) {
     return NextResponse.json({ error: "Server configuration missing" }, { status: 500 });
