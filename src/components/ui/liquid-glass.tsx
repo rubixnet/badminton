@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useId } from "react";
+import React, { useEffect, useMemo, useRef, useState, useId } from "react";
 
 // --- Core Math & Generators ---
 const surfaceFn = (x: number) => Math.pow(1 - Math.pow(1 - x, 4), 0.25);
@@ -150,7 +150,6 @@ export function LiquidGlassLayer({
 }: LiquidGlassLayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dim, setDim] = useState({ w: 0, h: 0 });
-  const [maps, setMaps] = useState({ dispUrl: "", specUrl: "", maxDisp: 1 });
   const uniqueId = useId().replace(/:/g, "");
   const filterId = `lg-filter-${uniqueId}`;
 
@@ -170,9 +169,11 @@ export function LiquidGlassLayer({
     return () => ro.disconnect();
   }, []);
 
-  useEffect(() => {
+  const maps = useMemo(() => {
     const { w, h } = dim;
-    if (w < 10 || h < 10) return;
+    if (w < 10 || h < 10) {
+      return { dispUrl: "", specUrl: "", maxDisp: 1 };
+    }
 
     const actualRadius = Math.max(2, Math.min(borderRadius, w / 2, h / 2));
     const bezel = Math.min(bezelWidth, actualRadius - 1, Math.min(w, h) / 2 - 1);
@@ -182,7 +183,7 @@ export function LiquidGlassLayer({
     const dispUrl = generateDisplacementMap(w, h, actualRadius, bezel, profile, maxDisp);
     const specUrl = generateSpecularMap(w, h, actualRadius, bezel * 2.5, balancedSpecular);
 
-    setMaps({ dispUrl, specUrl, maxDisp });
+    return { dispUrl, specUrl, maxDisp };
   }, [dim, borderRadius, glassThickness, bezelWidth, ior, balancedSpecular]);
 
   const scale = maps.maxDisp * scaleRatio;

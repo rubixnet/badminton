@@ -7,15 +7,24 @@ import { MatchList } from "@/components/match-list";
 import { CreateMatchDialog } from "@/components/create-match-dialog";
 import { useMobile } from "@/hooks/use-mobile";
 import { Navbar } from "@/components/navbar";
-import { ArrowUpRight, Plus, Home, BarChart2, User, Settings } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Match } from "@/types/match";
-import type { Doc } from "../../../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../../../convex/_generated/dataModel";
 
 interface HomeClientProps {
-  user: Doc<"users">;
-  group: Doc<"groups">;
+  user: {
+    _id: Id<"users">;
+    _creationTime: number;
+    groupId?: Id<"groups">;
+    role?: "admin" | "member";
+    name: string;
+    email: string;
+    workosId: string;
+    isOnboarded: boolean;
+  }; 
+  group: any;
 }
 
 export default function HomeClient({ user, group }: HomeClientProps) {
@@ -28,8 +37,6 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   const router = useRouter();
   const liveGroup = useQuery(api.group.getGroupById, { groupId: group._id });
   const signalRefresh = useMutation(api.group.triggerRefresh);
-
-
 
   const fetchMatches = useCallback(async (pageNum: number, isBackground = false) => {
     if (!isBackground) setIsLoading(true);
@@ -112,7 +119,7 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   };
 
   const triggerCreateMatch = () => {
-    isMobile ? router.push("/matches/new") : setIsOpen(true);
+    isMobile ? router.push(`/home/${group._id}/matches/new`) : setIsOpen(true);
   };
 
   return (

@@ -13,31 +13,33 @@ export default async function NewMatchPage() {
 
   if (!token) redirect("/login");
 
+  let workosId: string;
+
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    const workosId = payload.userId as string;
-
-    const profile = await fetchQuery(api.users.getProfile, { workosId });
-
-    if (!profile || !profile.groupId) {
-      redirect("/onboarding");
-    }
-
-    const group = await fetchQuery(api.group.getById, { groupId: profile.groupId });
-
-    if (!group) {
-      redirect("/");
-    }
-
-    return (
-      <CreateMatchScreen
-        user={{ _id: profile._id }}
-        group={{ _id: group._id }}
-        overlay={true}
-      />
-    );
+    workosId = payload.userId as string;
   } catch (error) {
     console.error("NewMatchPage Auth Error:", error);
     redirect("/login");
   }
+
+  const profile = await fetchQuery(api.users.getProfile, { workosId });
+
+  if (!profile || !profile.groupId) {
+    redirect("/onboarding");
+  }
+
+  const group = await fetchQuery(api.group.getById, { groupId: profile.groupId });
+
+  if (!group) {
+    redirect("/");
+  }
+
+  return (
+    <CreateMatchScreen
+      user={{ _id: profile._id, name: profile.name }}
+      group={{ _id: group._id }}
+      overlay={true}
+    />
+  );
 }

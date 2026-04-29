@@ -63,8 +63,7 @@ function persistMatch(match: Match) {
 export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchScreenProps) {
   const router = useRouter();
   const isMobile = useMobile();
-  const [mounted, setMounted] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const closeTimeoutRef = useRef<number | null>(null);
 
   const closeScreen = useCallback(() => {
@@ -87,9 +86,6 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
   }, [overlay, router]);
 
   useEffect(() => {
-    setMounted(true);
-    setOpen(true);
-
     return () => {
       if (closeTimeoutRef.current !== null) {
         window.clearTimeout(closeTimeoutRef.current);
@@ -99,10 +95,10 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
   }, []);
 
   useEffect(() => {
-    if (mounted && !isMobile) {
+    if (!isMobile) {
       router.replace("/");
     }
-  }, [mounted, isMobile, router]);
+  }, [isMobile, router]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && open) {
@@ -139,7 +135,7 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
   closeScreen();
 };
 
-  if (!mounted || !isMobile) {
+  if (!isMobile) {
     return null;
   }
 

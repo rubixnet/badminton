@@ -109,7 +109,7 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
   };
 
   return (
-    <TooltipProvider delayDuration={100}>
+    <TooltipProvider >
       <div className={`space-y-3 ${className}`}>
         <div className="flex items-center justify-center gap-6 text-sm">
           <span className="text-muted-foreground">
@@ -180,7 +180,7 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
                             : undefined
                         }
                       >
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger >
                           <div
                             className="w-3 h-3 rounded-sm cursor-pointer transition-all hover:ring-1 hover:ring-foreground/50"
                             style={getColorStyle(day.count)}
@@ -199,7 +199,6 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
                         <TooltipContent
                           side="top"
                           className="text-xs bg-popover text-popover-foreground border shadow-md"
-                          onPointerDownOutside={() => setOpenTooltip(null)}
                         >
                           <p className="font-medium">
                             {formatDate(day.dateStr)}

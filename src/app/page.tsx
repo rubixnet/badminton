@@ -3,9 +3,9 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { buttonVariants, Button } from '@/components/ui/button'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Moon, Sun, Play, X, TrendingUp, Trophy, Menu, Flame, ArrowRight, Activity, Lightbulb } from 'lucide-react'
+import { Moon, Sun, Play, X, TrendingUp, Menu } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
@@ -26,10 +26,6 @@ import { useTheme } from 'next-themes'
 
 function ThemeToggle() {
     const { theme, setTheme } = useTheme()
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => setMounted(true), [])
-    if (!mounted) return <div className="w-9 h-9" />
 
     return (
         <button
@@ -126,6 +122,11 @@ function StatRadar({ stats, className = "" }: StatRadarProps) {
 }
 
 function ActivityHeatmap() {
+    const seededValue = (week: number, day: number, salt = 0) => {
+        const x = Math.sin((week + 1) * 12.9898 + (day + 1) * 78.233 + salt * 37.719) * 43758.5453
+        return x - Math.floor(x)
+    }
+
     const calendarData = useMemo(() => {
         const weeks = 52
         const days = 7
@@ -142,11 +143,11 @@ function ActivityHeatmap() {
                 
                 let count = 0
                 const isWeekend = d === 0 || d === 6
-                const chance = Math.random()
+                const chance = seededValue(w, d)
                 
-                if (isWeekend && chance > 0.4) count = Math.floor(Math.random() * 4) + 1
-                else if (!isWeekend && chance > 0.85) count = Math.floor(Math.random() * 2) + 1
-                if (w > 48 && chance > 0.3) count = Math.floor(Math.random() * 5) + 1
+                if (isWeekend && chance > 0.4) count = Math.floor(seededValue(w, d, 1) * 4) + 1
+                else if (!isWeekend && chance > 0.85) count = Math.floor(seededValue(w, d, 2) * 2) + 1
+                if (w > 48 && chance > 0.3) count = Math.floor(seededValue(w, d, 3) * 5) + 1
 
                 week.push({
                     date: currentDate,
@@ -168,7 +169,7 @@ function ActivityHeatmap() {
     }
 
     return (
-        <TooltipProvider delayDuration={0}>
+        <TooltipProvider >
             <div className="w-full flex flex-col items-center">
                 <div className="w-full overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     <div className="min-w-max flex gap-[3px] p-2 mx-auto justify-center">
@@ -176,7 +177,7 @@ function ActivityHeatmap() {
                             <div key={wIdx} className="flex flex-col gap-[3px]">
                                 {week.map((day, dIdx) => (
                                     <Tooltip key={`${wIdx}-${dIdx}`}>
-                                        <TooltipTrigger asChild>
+                                        <TooltipTrigger >
                                             <div 
                                                 className={cn(
                                                     "w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-[2px] transition-colors duration-200", 

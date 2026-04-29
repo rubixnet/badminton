@@ -2,18 +2,13 @@
 
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/homepage/theme-toggle";
 import { cn } from "@/lib/utils"; 
 
 export function Navbar() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => {
-        setMounted(true)
-    }, [])
 
     const closeMenu = () => setIsMobileMenuOpen(false);
 
@@ -32,7 +27,7 @@ export function Navbar() {
                     <div className="flex items-center gap-2">
                         <div className="h-4 w-px bg-border/50 " />
                         <div className="w-9 h-9 flex items-center justify-center">
-                            {mounted ? <ThemeToggle /> : <div className="w-4 h-4" />}
+                            <ThemeToggle />
                         </div>
                         <div className="h-4 w-px bg-border/50" />
                         <Link href="/login" className={buttonVariants({ variant: "default", size: "sm", className: "rounded-md shadow-none font-medium h-9 px-5" })}>
@@ -42,7 +37,7 @@ export function Navbar() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:hidden">
-                    {mounted && <ThemeToggle />}
+                    <ThemeToggle />
                     <button
                         className="p-2 -mr-2 text-muted-foreground"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

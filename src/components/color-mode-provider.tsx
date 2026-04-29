@@ -40,32 +40,26 @@ const MULTICOLOR_PALETTE = [
 ];
 
 export function ColorModeProvider({ children }: { children: ReactNode }) {
-  const [colorMode, setColorModeState] = useState<ColorMode>("monochrome");
-  const [accentColor, setAccentColorState] =
-    useState<string>("hsl(220, 70%, 50%)");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // Load from localStorage on mount
+  const [colorMode, setColorModeState] = useState<ColorMode>(() => {
+    if (typeof window === "undefined") return "monochrome";
     const storedMode = localStorage.getItem(STORAGE_KEY_MODE) as ColorMode;
-    const storedAccent = localStorage.getItem(STORAGE_KEY_ACCENT);
 
-    if (
+    return (
       storedMode &&
       ["monochrome", "multicolor", "custom"].includes(storedMode)
-    ) {
-      setColorModeState(storedMode);
-    }
-    if (storedAccent) {
-      setAccentColorState(storedAccent);
-    }
-    setMounted(true);
-  }, []);
+    )
+      ? storedMode
+      : "monochrome";
+  });
+  const [accentColor, setAccentColorState] = useState<string>(() => {
+    if (typeof window === "undefined") return "hsl(220, 70%, 50%)";
+    const storedAccent = localStorage.getItem(STORAGE_KEY_ACCENT);
+
+    return storedAccent || "hsl(220, 70%, 50%)";
+  });
 
   // Apply custom-accent class and CSS variables when custom mode is active
   useEffect(() => {
-    if (!mounted) return;
-
     const root = document.documentElement;
 
     if (colorMode === "custom") {
@@ -97,7 +91,7 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
       root.style.removeProperty("--selection-bg-light");
       root.style.removeProperty("--selection-bg-dark");
     };
-  }, [colorMode, accentColor, mounted]);
+  }, [colorMode, accentColor]);
 
   const setColorMode = (mode: ColorMode) => {
     setColorModeState(mode);

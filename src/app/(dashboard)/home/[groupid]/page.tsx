@@ -37,8 +37,9 @@ export default async function Page({ params }: PageProps) {
         }
     }
 
-    if (!group.isPublic && !profile) {
-        redirect(`/login?invite=${group.inviteCode || ''}`);
+    if (!profile) {
+        const inviteQuery = !group.isPublic && group.inviteCode ? `?invite=${group.inviteCode}` : '';
+        redirect(`/login${inviteQuery}`);
     }
 
     return <HomeClient user={profile} group={group} />;

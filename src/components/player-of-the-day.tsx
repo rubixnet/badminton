@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Trophy, ChevronDown } from "lucide-react";
+import confetti from "canvas-confetti";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,15 +29,12 @@ interface PlayerOfTheDayProps {
 export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [revealed, setRevealed] = useState(false);
-
   const todayKey = useMemo(() => new Date().toISOString().split("T")[0], []);
-
-  // Check if already revealed today
-  useEffect(() => {
+  const [revealed, setRevealed] = useState(() => {
+    if (typeof window === "undefined") return false;
     const storedDate = localStorage.getItem("badminton_potd_revealed_date");
-    setRevealed(storedDate === todayKey);
-  }, [todayKey]);
+    return storedDate === todayKey;
+  });
 
   // Persist reveal state
   useEffect(() => {

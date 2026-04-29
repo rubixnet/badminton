@@ -29,6 +29,39 @@ interface NavbarProps {
   onCreateMatch?: () => void;
 }
 
+interface PlayerDropdownProps {
+  players: string[];
+  onSelectPlayer: (player: string) => void;
+}
+
+function PlayerDropdown({ players, onSelectPlayer }: PlayerDropdownProps) {
+  return (
+    <Card className="rounded-2xl border border-border/50 shadow-xl bg-background overflow-hidden">
+      <CardHeader className="pb-4 bg-muted/10 border-b border-border/40">
+        <CardDescription>Click to view deep analytics for individual players</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-6 max-h-[50vh] overflow-y-auto">
+        {players.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {players.map((player) => (
+              <Button
+                key={player}
+                variant="outline"
+                className="rounded-xl min-h-10 px-5 hover:border-primary transition-colors shadow-none border-border/60 bg-background active:scale-[0.96]"
+                onClick={() => onSelectPlayer(player)}
+              >
+                {player}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No players recorded yet.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function Navbar({ title, onCreateMatch }: NavbarProps) {
   const pathname = usePathname();
   const params = useParams();
@@ -103,32 +136,6 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
     router.push(`/home/${groupId}/analytics/player/${encodeURIComponent(player)}`);
   };
 
-  const PlayerDropdown = () => (
-    <Card className="rounded-2xl border border-border/50 shadow-xl bg-background overflow-hidden">
-      <CardHeader className="pb-4 bg-muted/10 border-b border-border/40">
-        <CardDescription>Click to view deep analytics for individual players</CardDescription>
-      </CardHeader>
-      <CardContent className="pt-6 max-h-[50vh] overflow-y-auto">
-        {allPlayers.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {allPlayers.map((player) => (
-              <Button
-                key={player}
-                variant="outline"
-                className="rounded-xl min-h-10 px-5 hover:border-primary transition-colors shadow-none border-border/60 bg-background active:scale-[0.96]"
-                onClick={() => goToPlayer(player)}
-              >
-                {player}
-              </Button>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-4">No players recorded yet.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-
   if (!groupId) return null;
 
   return (
@@ -180,7 +187,7 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
                 </Link>
 
                 <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                  <PopoverTrigger asChild>
+                  <PopoverTrigger >
                     <button
                       className={cn(
                         "flex items-center gap-2 h-full text-sm font-medium transition-all px-3 border-b-2 outline-none",
@@ -192,7 +199,7 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
                     </button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-[450px] p-0 rounded-2xl shadow-2xl border-none bg-transparent">
-                    <PlayerDropdown />
+                    <PlayerDropdown players={allPlayers} onSelectPlayer={goToPlayer} />
                   </PopoverContent>
                 </Popover>
 
@@ -247,13 +254,13 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
               <Plus className="h-7 w-7" />
             </button>
             <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-              <PopoverTrigger asChild>
+              <PopoverTrigger >
                 <button className="flex flex-col items-center p-2 outline-none">
                   <Users className={cn("h-6 w-6", pathname.includes("/player/") ? "text-primary" : "text-muted-foreground")} />
                 </button>
               </PopoverTrigger>
               <PopoverContent align="center" side="top" sideOffset={24} className="w-[92vw] p-0 rounded-2xl shadow-2xl border-none bg-transparent">
-                <PlayerDropdown />
+                <PlayerDropdown players={allPlayers} onSelectPlayer={goToPlayer} />
               </PopoverContent>
             </Popover>
 

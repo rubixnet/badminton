@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
             from: parsed.from ? new Date(parsed.from) : undefined,
             to: parsed.to ? new Date(parsed.to) : undefined,
           };
-        } catch(e) {
+        } catch (e) {
           return {};
         }
       }
@@ -303,12 +303,12 @@ export default function AnalyticsPage() {
     const previousPeriodMatches =
       timePeriod !== "all" && dateRange.start
         ? matches.filter((m) => {
-            const matchDate = new Date(m.createdAt);
-            const periodLength = periodDays * 24 * 60 * 60 * 1000;
-            const prevStart = new Date(dateRange.start!.getTime() - periodLength);
-            const prevEnd = new Date(dateRange.start!.getTime() - 1);
-            return matchDate >= prevStart && matchDate <= prevEnd;
-          })
+          const matchDate = new Date(m.createdAt);
+          const periodLength = periodDays * 24 * 60 * 60 * 1000;
+          const prevStart = new Date(dateRange.start!.getTime() - periodLength);
+          const prevEnd = new Date(dateRange.start!.getTime() - 1);
+          return matchDate >= prevStart && matchDate <= prevEnd;
+        })
         : [];
 
     // 2. Helper to calculate stats for a subset
@@ -519,30 +519,30 @@ export default function AnalyticsPage() {
       const winRateOverTime = computeWinRateOverTime(subset, top5);
 
       // Impact over time - Calculate daily impact for top players
-      const impactOverTime: Array<{ date: string; [key: string]: any }> = [];
+      const impactOverTime: Array<{ date: string;[key: string]: any }> = [];
       const impactByDate: Record<string, Record<string, { impact: number; count: number }>> = {};
-      
+
       // Group matches by date and calculate cumulative impact for each player
       const sortedMatches = [...subset].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
       const playerMatchHistory: Record<string, Match[]> = {};
-      
+
       sortedMatches.forEach((match) => {
         const date = match.createdAt.split("T")[0];
-        
+
         // Track match history for each player
         [...match.team1.players, ...match.team2.players].forEach((p) => {
           if (!p.name) return;
           const name = p.name.trim();
           if (!playerMatchHistory[name]) playerMatchHistory[name] = [];
           playerMatchHistory[name].push(match);
-          
+
           // Calculate impact at this point
           const totals = computePlayerWinRateTotals(playerMatchHistory[name]);
           if (totals[name] && totals[name].rawMatches >= 3) {
             const winRate = computeWinRatePercent(totals[name], 3);
             const rawWinRate = computeRawWinRatePercent(totals[name], 3);
             const impact = parseFloat((winRate - rawWinRate).toFixed(1));
-            
+
             if (!impactByDate[date]) impactByDate[date] = {};
             if (!impactByDate[date][name]) {
               impactByDate[date][name] = { impact: 0, count: 0 };
@@ -552,7 +552,7 @@ export default function AnalyticsPage() {
           }
         });
       });
-      
+
       // Convert to chart data format
       Object.entries(impactByDate).forEach(([date, players]) => {
         const entry: any = { date };
@@ -562,7 +562,7 @@ export default function AnalyticsPage() {
         impactOverTime.push(entry);
       });
       impactOverTime.sort((a, b) => a.date.localeCompare(b.date));
-      
+
       // Get players who have impact data
       const impactPlayersSet = new Set<string>();
       Object.values(impactByDate).forEach((day) =>
@@ -1462,16 +1462,13 @@ export default function AnalyticsPage() {
                 >
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
                     className="text-xs"
                     interval="preserveStartEnd"
-                    tick={{ angle: -45, textAnchor: "end" }}
+                    angle={-45}
+                    tick={{ textAnchor: "end" }} 
                     tickFormatter={(value) =>
                       new Date(value).toLocaleDateString(undefined, {
                         month: "short",
-                        day: "numeric",
                       })
                     }
                   />
@@ -2254,13 +2251,12 @@ export default function AnalyticsPage() {
                 open={popoverOpen}
                 onOpenChange={(open) => {
                   setPopoverOpen(open);
-                  // Reset to list view when popover opens or closes
                   if (!open) {
                     setShowCalendar(false);
                   }
                 }}
               >
-                <PopoverTrigger asChild>
+                <PopoverTrigger >
                   <Button
                     variant="outline"
                     className="w-full md:w-60 justify-between"

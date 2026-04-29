@@ -220,7 +220,6 @@ function calculatePlayerStats(
       dailyWinRate.push({ date: dateKey, wins: isWinner ? 1 : 0, matches: 1 });
     }
 
-    // Track bonus points for this player
     const myPlayer = myTeam.players.find((p) => p.name?.trim() === playerName);
     if (myPlayer?.bonusPoints) {
       dailyBonusMap[dateKey] =
@@ -299,8 +298,8 @@ function calculatePlayerStats(
     winRate:
       stats.wins + stats.losses > 0
         ? parseFloat(
-            ((stats.wins / (stats.wins + stats.losses)) * 100).toFixed(1),
-          )
+          ((stats.wins / (stats.wins + stats.losses)) * 100).toFixed(1),
+        )
         : 0,
   }));
 
@@ -414,31 +413,30 @@ export default function PlayerProfilePage() {
           }
         }
 
-        // FIX 3: Add ?groupId= to the API fetch
         if (!loadedFromCache) {
-            const res = await fetch(`/api/analytics?groupId=${groupId}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.matches) {
-                  setMatches(data.matches);
-                  setStrictMode(data.strictMode || false);
-                  localStorage.setItem(
-                    cacheKey,
-                    JSON.stringify({ matches: data.matches, strictMode: data.strictMode }),
-                  );
-    
-                  const players = new Set<string>();
-                  data.matches.forEach((m: Match) => {
-                    m.team1.players.forEach(
-                      (p) => p.name && players.add(p.name.trim()),
-                    );
-                    m.team2.players.forEach(
-                      (p) => p.name && players.add(p.name.trim()),
-                    );
-                  });
-                  setAllPlayers(Array.from(players).sort());
-                }
+          const res = await fetch(`/api/analytics?groupId=${groupId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.matches) {
+              setMatches(data.matches);
+              setStrictMode(data.strictMode || false);
+              localStorage.setItem(
+                cacheKey,
+                JSON.stringify({ matches: data.matches, strictMode: data.strictMode }),
+              );
+
+              const players = new Set<string>();
+              data.matches.forEach((m: Match) => {
+                m.team1.players.forEach(
+                  (p) => p.name && players.add(p.name.trim()),
+                );
+                m.team2.players.forEach(
+                  (p) => p.name && players.add(p.name.trim()),
+                );
+              });
+              setAllPlayers(Array.from(players).sort());
             }
+          }
         }
       } catch (error) {
         console.error("Failed to fetch matches:", error);
@@ -493,8 +491,6 @@ export default function PlayerProfilePage() {
       winRate: data.matches > 0 ? (data.wins / data.matches) * 100 : 0,
     }))
     .sort((a, b) => b.matches - a.matches);
-
-  // FIX 4: Correct routing to include the dynamic groupId
   const backLink = `/home/${groupId}/analytics`;
 
   if (loading) {
@@ -598,7 +594,7 @@ export default function PlayerProfilePage() {
           <div className="ml-auto">
             <Select
               value={comparePlayer || "none"}
-              onValueChange={(v) => setComparePlayer(v === "none" ? "" : v)}
+              onValueChange={(v) => setComparePlayer(v && v !== "none" ? v : "")}
             >
               <SelectTrigger className="w-40 h-8 text-sm">
                 <SelectValue placeholder="Compare…" />
@@ -671,11 +667,10 @@ export default function PlayerProfilePage() {
                         displayedResults.map((result, i) => (
                           <span
                             key={i}
-                            className={`inline-flex items-center justify-center w-8 h-8 text-sm font-medium border ${
-                              result === "W"
+                            className={`inline-flex items-center justify-center w-8 h-8 text-sm font-medium border ${result === "W"
                                 ? "bg-foreground text-background"
                                 : "bg-background text-foreground"
-                            }`}
+                              }`}
                           >
                             {result}
                           </span>
@@ -1280,7 +1275,7 @@ export default function PlayerProfilePage() {
                         <span
                           className={
                             stats.longestWinStreak >
-                            compareStats.longestWinStreak
+                              compareStats.longestWinStreak
                               ? "font-bold"
                               : ""
                           }
@@ -1291,7 +1286,7 @@ export default function PlayerProfilePage() {
                         <span
                           className={
                             compareStats.longestWinStreak >
-                            stats.longestWinStreak
+                              stats.longestWinStreak
                               ? "font-bold"
                               : ""
                           }
