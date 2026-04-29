@@ -540,10 +540,10 @@ export default function Home() {
                             <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors font-medium">Features</Link>
                             <Link href="#story" className="text-muted-foreground hover:text-foreground transition-colors font-medium">Story</Link>
                         </div>
-                        <div className="flex items-center gap-3 pl-5 ml-4">
-                               <span className="text-muted-foreground/30">|</span>
+                        <div className="flex items-center gap-1 pl-2">
+                            <div className="h-4 w-px bg-border " />
                             <ThemeToggle />
-                            <span className="text-muted-foreground/30">-</span>
+                            <div className="h-4 w-px bg-border " />
                             <Link href="/login" className={buttonVariants({ variant: "default", size: "sm", className: "shadow-none font-medium ml-2 active:scale-[0.96] transition-transform" })}>
                                 Try it free
                             </Link>
