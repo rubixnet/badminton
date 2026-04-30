@@ -106,7 +106,7 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
 
   return (
     <div className={cn("w-full flex flex-col items-center", className)}>
-      <TooltipProvider delayDuration={100}>
+      <TooltipProvider>
         <div className="w-full flex flex-col items-center">
           <div className="w-full max-w-[100vw] flex justify-center">
             
@@ -116,7 +116,6 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
             >
               <div className="inline-flex flex-col min-w-max mx-auto">
                 
-                {/* Month labels */}
                 <div className="flex text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3 pl-8">
                   {calendarData.months.map((month, index) => {
                     const nextMonth = calendarData.months[index + 1];
