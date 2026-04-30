@@ -80,6 +80,73 @@ export const finalizeUser = mutation({
   },
 });
 
+export const completeOnboarding = mutation({
+  args: {
+    workosId: v.string(),
+    email: v.string(),
+    name: v.string(),
+    clubName: v.optional(v.string()),
+    inviteCode: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let user = await ctx.db
+      .query("users")
+      .withIndex("byWorkosId", (q) => q.eq("workosId", args.workosId))
+      .unique();
+
+    if (!user) {
+      const userId = await ctx.db.insert("users", {
+        workosId: args.workosId,
+        email: args.email,
+        isOnboarded: false,
+        name: "",
+      });
+
+      user = await ctx.db.get(userId);
+    }
+
+    if (!user) {
+      throw new Error("Unable to create user profile.");
+    }
+
+    let groupId = user.groupId;
+    let role = user.role;
+
+    if (args.inviteCode) {
+      const group = await ctx.db
+        .query("groups")
+        .withIndex("byInviteCode", (q) => q.eq("inviteCode", args.inviteCode!))
+        .unique();
+
+      if (!group) {
+        throw new Error("Invitation link is no longer valid.");
+      }
+
+      groupId = group._id;
+      role = "member";
+    } else if (!groupId) {
+      const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      groupId = await ctx.db.insert("groups", {
+        name: args.clubName || `${args.name}'s Club`,
+        inviteCode,
+        adminId: user._id,
+        activeSheetId: process.env.GOOGLE_SHEET_ID || "",
+      });
+      role = "admin";
+    }
+
+    await ctx.db.patch(user._id, {
+      name: args.name,
+      email: args.email,
+      isOnboarded: true,
+      groupId,
+      role,
+    });
+
+    return { userId: user._id, groupId };
+  },
+});
+
 export const getUsersByGroupId = query({
   args: { groupId: v.string() }, 
   handler: async (ctx, args) => {
