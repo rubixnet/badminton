@@ -23,7 +23,7 @@ interface HomeClientProps {
     email: string;
     workosId: string;
     isOnboarded: boolean;
-  }; 
+  } | null; 
   group: any;
 }
 
@@ -79,6 +79,8 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   }, [liveGroup?.lastActivity, fetchMatches]);
 
   const handleMatchCreated = async (newMatch: Match) => {
+    if (!user) return;
+
     const matchWithMeta: Match = {
       ...newMatch,
       id: `match_${Date.now()}`,
@@ -119,15 +121,21 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   };
 
   const triggerCreateMatch = () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
     isMobile ? router.push(`/home/${group._id}/matches/new`) : setIsOpen(true);
   };
+  const canCreateMatch = Boolean(user);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground selection:bg-primary/30">
       <div className="relative z-10 pb-24 md:pb-0">
         <Navbar
           title={`${group.name} Tracker`}
-          onCreateMatch={triggerCreateMatch}
+          onCreateMatch={canCreateMatch ? triggerCreateMatch : undefined}
         />
 
         <main className="mx-auto max-w-6xl px-3 pb-12 pt-3 md:px-6 md:pt-5">
@@ -151,7 +159,7 @@ export default function HomeClient({ user, group }: HomeClientProps) {
           )}
         </main>
 
-        {!isMobile && (
+        {canCreateMatch && !isMobile && (
           <CreateMatchDialog
             open={isOpen}
             onOpenChange={setIsOpen}

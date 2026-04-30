@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../../../convex/_generated/api";
 import { Navbar } from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   Copy, 
   Check, 
@@ -18,7 +19,8 @@ import {
   Edit3, 
   Trash2, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  X
 } from "lucide-react";
 import type { Match } from "@/types/match";
 import { cn } from "@/lib/utils";
@@ -32,12 +34,20 @@ export default function SettingsPage() {
   const [copied, setCopied] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   const [uniquePlayersCount, setUniquePlayersCount] = useState(0);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingMemberName, setEditingMemberName] = useState("");
+  const [memberEditError, setMemberEditError] = useState<string | null>(null);
+  const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
+  const [publicScoresError, setPublicScoresError] = useState<string | null>(null);
+  const [isSavingPublicScores, setIsSavingPublicScores] = useState(false);
   
   const [userSession, setUserSession] = useState<{ userId: string; name?: string; email?: string } | null>(null);
 
   const profile = useQuery(api.users.getProfile, userSession?.userId ? { workosId: userSession.userId } : "skip");
   const group = useQuery(api.group.getGroupById, { groupId: groupId as any });
   const signedMembers = useQuery(api.users.getUsersByGroupId, { groupId });
+  const updateMemberName = useMutation(api.users.updateMemberName);
+  const updatePublicScores = useMutation(api.group.updatePublicScores);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -83,8 +93,70 @@ export default function SettingsPage() {
     window.location.href = "/api/auth/logout";
   };
 
-  const isAdmin = profile?._id === group?.adminId;
+  const startEditingMember = (member: any) => {
+    setMemberEditError(null);
+    setEditingMemberId(member._id);
+    setEditingMemberName(member.name || "");
+  };
+
+  const cancelEditingMember = () => {
+    setMemberEditError(null);
+    setEditingMemberId(null);
+    setEditingMemberName("");
+  };
+
+  const saveMemberName = async (memberId: string) => {
+    if (!userSession?.userId) return;
+
+    const nextName = editingMemberName.trim();
+    if (!nextName) {
+      setMemberEditError("Member name is required.");
+      return;
+    }
+
+    setSavingMemberId(memberId);
+    setMemberEditError(null);
+
+    try {
+      await updateMemberName({
+        adminWorkosId: userSession.userId,
+        memberId: memberId as any,
+        name: nextName,
+      });
+      cancelEditingMember();
+    } catch (error) {
+      setMemberEditError(
+        error instanceof Error ? error.message : "Failed to update member.",
+      );
+    } finally {
+      setSavingMemberId(null);
+    }
+  };
+
+  const isAdmin = profile?._id?.toString() === group?.adminId?.toString();
   const inviteLink = group ? `${window.location.origin}/invite/${group.inviteCode}` : "";
+  const publicScoresEnabled = Boolean(group?.isPublic);
+
+  const handlePublicScoresChange = async (checked: boolean) => {
+    if (!isAdmin || !userSession?.userId || !group?._id) return;
+
+    setIsSavingPublicScores(true);
+    setPublicScoresError(null);
+
+    try {
+      await updatePublicScores({
+        groupId: group._id,
+        adminWorkosId: userSession.userId,
+        isPublic: checked,
+      });
+    } catch (error) {
+      setPublicScoresError(
+        error instanceof Error ? error.message : "Failed to update public scores.",
+      );
+    } finally {
+      setIsSavingPublicScores(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-hidden">
@@ -160,6 +232,37 @@ export default function SettingsPage() {
           </Card>
 
           <Card className="rounded-2xl border-border/50 bg-card shadow-sm">
+            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+              <div className="space-y-1.5">
+                <CardTitle className="text-base text-balance">Public Scores</CardTitle>
+                <CardDescription>
+                  Allow anyone with the club link to view scores and analytics without signing in.
+                </CardDescription>
+              </div>
+              <Switch
+                checked={publicScoresEnabled}
+                disabled={!isAdmin || isSavingPublicScores || !group}
+                onCheckedChange={handlePublicScoresChange}
+                aria-label="Make scores public"
+              />
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-xs text-muted-foreground">
+                {isAdmin
+                  ? publicScoresEnabled
+                    ? "Scores are public. New matches still require a signed-in member."
+                    : "Scores are private by default."
+                  : "Only the club admin can change this setting."}
+              </p>
+              {publicScoresError && (
+                <p className="mt-3 rounded-lg border border-[var(--destructive)]/25 bg-[var(--destructive)]/10 px-3 py-2 text-sm text-[var(--destructive)]">
+                  {publicScoresError}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-border/50 bg-card shadow-sm">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
               <div className="space-y-1.5">
                 <CardTitle className="text-base text-balance">Verified Members</CardTitle>
@@ -170,20 +273,75 @@ export default function SettingsPage() {
               </Badge>
             </CardHeader>
             <CardContent>
+              {memberEditError && (
+                <p className="mb-4 rounded-lg border border-[var(--destructive)]/25 bg-[var(--destructive)]/10 px-3 py-2 text-sm text-[var(--destructive)]">
+                  {memberEditError}
+                </p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {signedMembers?.map((member: any) => (
                   <div key={member._id} className="flex items-center justify-between p-4 border border-border/50 rounded-xl bg-background hover:bg-muted/30 transition-colors">
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary text-xs flex items-center justify-center font-medium shrink-0">
-                        {member.name.charAt(0).toUpperCase()}
+                        {(member.name || "?").charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium text-foreground/90">{member.name}</span>
+                      {editingMemberId === member._id ? (
+                        <Input
+                          value={editingMemberName}
+                          onChange={(event) => setEditingMemberName(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") saveMemberName(member._id);
+                            if (event.key === "Escape") cancelEditingMember();
+                          }}
+                          className="h-9 min-w-0 text-sm"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="truncate text-sm font-medium text-foreground/90">{member.name}</span>
+                      )}
                     </div>
-                    {member._id === group?.adminId && (
-                      <Badge variant="secondary" className="rounded-md px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground shadow-none">
-                        Founder
-                      </Badge>
-                    )}
+                    <div className="ml-3 flex shrink-0 items-center gap-1">
+                      {member._id?.toString() === group?.adminId?.toString() && (
+                        <Badge variant="secondary" className="rounded-md px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground shadow-none">
+                          Founder
+                        </Badge>
+                      )}
+                      {isAdmin && editingMemberId !== member._id && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary"
+                          onClick={() => startEditingMember(member)}
+                        >
+                          <Edit3 className="h-4 w-4" />
+                          <span className="sr-only">Edit member</span>
+                        </Button>
+                      )}
+                      {isAdmin && editingMemberId === member._id && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary"
+                            disabled={savingMemberId === member._id}
+                            onClick={() => saveMemberName(member._id)}
+                          >
+                            <Check className="h-4 w-4" />
+                            <span className="sr-only">Save member</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-[var(--destructive)]"
+                            disabled={savingMemberId === member._id}
+                            onClick={cancelEditingMember}
+                          >
+                            <X className="h-4 w-4" />
+                            <span className="sr-only">Cancel edit</span>
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -186,22 +186,24 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
                   Analytics
                 </Link>
 
-                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                  <PopoverTrigger >
-                    <button
-                      className={cn(
-                        "flex items-center gap-2 h-full text-sm font-medium transition-all px-3 border-b-2 outline-none",
-                        pathname.includes("/player/") ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground "
-                      )}
-                    >
-                      <Users className="h-4 w-4 hidden lg:block" />
-                      Profiles
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-[450px] p-0 rounded-2xl shadow-2xl border-none bg-transparent">
-                    <PlayerDropdown players={allPlayers} onSelectPlayer={goToPlayer} />
-                  </PopoverContent>
-                </Popover>
+                {!isMobile && (
+                  <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                    <PopoverTrigger >
+                      <button
+                        className={cn(
+                          "flex items-center gap-2 h-full text-sm font-medium transition-all px-3 border-b-2 outline-none",
+                          pathname.includes("/player/") ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground "
+                        )}
+                      >
+                        <Users className="h-4 w-4 hidden lg:block" />
+                        Profiles
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-[450px] p-0 rounded-2xl shadow-2xl border-none bg-transparent">
+                      <PlayerDropdown players={allPlayers} onSelectPlayer={goToPlayer} />
+                    </PopoverContent>
+                  </Popover>
+                )}
 
                 <Link
                   href={`/home/${groupId}/settings`}
@@ -247,12 +249,14 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
               <BarChart2 className={cn("h-6 w-6", pathname === `/home/${groupId}/analytics` ? "text-primary" : "text-muted-foreground")} />
             </Link>
 
-            <button
-              onClick={onCreateMatch}
-              className="relative -top-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background transition-transform active:scale-90"
-            >
-              <Plus className="h-7 w-7" />
-            </button>
+            {onCreateMatch && (
+              <button
+                onClick={onCreateMatch}
+                className="relative -top-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background transition-transform active:scale-90"
+              >
+                <Plus className="h-7 w-7" />
+              </button>
+            )}
             <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
               <PopoverTrigger >
                 <button className="flex flex-col items-center p-2 outline-none">

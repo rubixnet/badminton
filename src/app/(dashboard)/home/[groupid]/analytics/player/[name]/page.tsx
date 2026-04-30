@@ -539,6 +539,8 @@ export default function PlayerProfilePage() {
     );
 
   const displayedResults = showAllRecent ? stats.recentResults : stats.last5;
+  const showWinStreak =
+    stats.currentStreak.type === "win" && stats.currentStreak.count >= 3;
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -556,6 +558,11 @@ export default function PlayerProfilePage() {
           {strictMode && (
             <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
               Strict Mode
+            </Badge>
+          )}
+          {showWinStreak && (
+            <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
+              {stats.currentStreak.count} match win streak
             </Badge>
           )}
         </div>
@@ -661,6 +668,11 @@ export default function PlayerProfilePage() {
                       <span className="text-xs text-muted-foreground">
                         (oldest → newest)
                       </span>
+                      {showWinStreak && (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                          Current {stats.currentStreak.count}W streak
+                        </span>
+                      )}
                     </div>
                     <div className="flex gap-1 flex-wrap">
                       {displayedResults.length > 0 ? (

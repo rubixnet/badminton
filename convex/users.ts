@@ -162,3 +162,39 @@ export const getUsersByGroupId = query({
       .collect();
   },
 });
+
+export const updateMemberName = mutation({
+  args: {
+    adminWorkosId: v.string(),
+    memberId: v.id("users"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("byWorkosId", (q) => q.eq("workosId", args.adminWorkosId))
+      .unique();
+
+    if (!admin?.groupId) {
+      throw new Error("Only group admins can edit members.");
+    }
+
+    const group = await ctx.db.get(admin.groupId);
+    if (!group || group.adminId !== admin._id) {
+      throw new Error("Only group admins can edit members.");
+    }
+
+    const member = await ctx.db.get(args.memberId);
+    if (!member || member.groupId !== admin.groupId) {
+      throw new Error("Member not found in this group.");
+    }
+
+    const name = args.name.trim();
+    if (!name) {
+      throw new Error("Member name is required.");
+    }
+
+    await ctx.db.patch(args.memberId, { name });
+    return args.memberId;
+  },
+});

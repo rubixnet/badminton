@@ -86,3 +86,29 @@ export const triggerRefresh = mutation({
     await ctx.db.patch(args.groupId, { lastActivity: Date.now() });
   },
 });
+
+export const updatePublicScores = mutation({
+  args: {
+    groupId: v.id("groups"),
+    adminWorkosId: v.string(),
+    isPublic: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("byWorkosId", (q) => q.eq("workosId", args.adminWorkosId))
+      .unique();
+
+    if (!admin || admin.groupId !== args.groupId) {
+      throw new Error("Only this group's admin can change public scores.");
+    }
+
+    const group = await ctx.db.get(args.groupId);
+    if (!group || group.adminId !== admin._id) {
+      throw new Error("Only this group's admin can change public scores.");
+    }
+
+    await ctx.db.patch(args.groupId, { isPublic: args.isPublic });
+    return { isPublic: args.isPublic };
+  },
+});

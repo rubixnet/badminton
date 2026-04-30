@@ -41,7 +41,7 @@ export default async function Page({ params }: PageProps) {
         }
     }
 
-    if (!profile) {
+    if (!profile && !group.isPublic) {
         if (token) {
             redirect('/api/auth/logout?reason=session_invalid');
         }
