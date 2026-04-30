@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { buttonVariants, Button } from '@/components/ui/button'
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Moon, Sun, Play, X, TrendingUp, Menu } from 'lucide-react'
+import { Moon, Sun, Play, X, TrendingUp, Menu, Edit2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
@@ -209,6 +209,70 @@ function ActivityHeatmap() {
                 </div>
             </div>
         </TooltipProvider>
+    )
+}
+
+function HeroVideoUI({ className }: { className?: string }) {
+    const [isOpen, setIsOpen] = useState(false)
+
+    return (
+        <section className={cn("max-w-4xl mx-auto px-6 mt-8 mb-16 sm:mb-24", className)}>
+            <div 
+                onClick={() => setIsOpen(true)}
+                className="relative w-full aspect-[21/9] sm:aspect-video bg-muted/10 border border-border/50 rounded-2xl sm:rounded-3xl overflow-hidden group cursor-pointer shadow-xl ring-1 ring-border/20"
+            >
+                <img 
+                    src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2000&auto=format&fit=crop" 
+                    alt="Video Thumbnail" 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                
+                <div className="absolute inset-0 bg-black/40 z-10 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-background/80 via-transparent to-background/20 z-10 pointer-events-none" />
+                
+                <div className="absolute inset-0 flex items-center justify-center z-20 transition-transform duration-500 group-hover:scale-110 active:scale-[0.98]">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-background/30 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-2xl transition-colors group-hover:bg-primary group-hover:border-primary text-white">
+                        <Play className="w-6 h-6 sm:w-8 sm:h-8 ml-1.5 fill-current" />
+                    </div>
+                </div>
+
+
+                <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 z-30 flex items-center gap-3">
+                    <Badge variant="outline" className="bg-black/40 backdrop-blur-md border-white/10 shadow-none text-[10px] uppercase tracking-widest text-white">
+                        Overview
+                    </Badge>
+                    <span className="text-xs sm:text-sm font-medium text-white drop-shadow-md">
+                        Watch the demo
+                    </span>
+                </div>
+            </div>
+
+            {isOpen && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-200"
+                    onClick={() => setIsOpen(false)}
+                >
+                    <div 
+                        className="relative w-full max-w-5xl aspect-video bg-black rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button 
+                            onClick={() => setIsOpen(false)}
+                            className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-black/70 transition-colors active:scale-[0.96]"
+                        >
+                            <X className="w-5 h-5 text-white" />
+                        </button>
+                        <iframe 
+                            className="w-full h-full"
+                            src="https://www.youtube.com/embed/2YjODDzddKw/?autoplay=1" 
+                            title="YouTube video player" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+                </div>
+            )}
+        </section>
     )
 }
 
@@ -449,40 +513,57 @@ function VideoDialogUI({ className }: { className?: string }) {
         <div className={cn("w-full min-h-[300px] flex items-center", className)}>
             <div 
                 onClick={() => setIsOpen(true)}
-                className="relative w-full aspect-video bg-background border border-border/50 rounded-2xl overflow-hidden group cursor-pointer shadow-sm"
+                className="relative w-full aspect-video bg-muted/10 border border-border/50 rounded-2xl overflow-hidden group cursor-pointer shadow-sm"
             >
-                <div className="absolute inset-0 bg-muted/10" />
+                <img 
+                    src="https://images.unsplash.com/photo-1611250282006-4484dd3fba6b?q=80&w=2000&auto=format&fit=crop" 
+                    alt="Custom Modes Thumbnail" 
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
                 
-                <div className="absolute inset-0 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 active:scale-[0.96]">
-                    <div className="w-16 h-16 rounded-full bg-background/80 backdrop-blur border border-border/50 flex items-center justify-center shadow-sm">
-                        <Play className="w-6 h-6 text-primary ml-1" />
+                <div className="absolute inset-0 bg-black/30 z-10 pointer-events-none" />
+                
+                <div className="absolute inset-0 flex items-center justify-center z-20 transition-transform duration-300 group-hover:scale-110 active:scale-[0.96]">
+                    <div className="w-16 h-16 rounded-full bg-background/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg text-white">
+                        <Play className="w-6 h-6 fill-current ml-1" />
                     </div>
                 </div>
 
-                <div className="absolute bottom-5 left-6 right-6 flex justify-between items-center">
+                <div className="absolute bottom-5 left-6 right-6 flex justify-between items-center z-30">
                     <div className="flex gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
                     </div>
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-white uppercase tracking-widest drop-shadow-md">
                         Watch Demo
                     </span>
                 </div>
             </div>
 
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-                    <div className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200">
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+                    onClick={() => setIsOpen(false)}
+                >
+                    <div 
+                        className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button 
                             onClick={() => setIsOpen(false)}
-                            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors active:scale-[0.96]"
+                            className="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-black/70 transition-colors active:scale-[0.96]"
                         >
                             <X className="w-5 h-5 text-white" />
                         </button>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
-                            <Play className="w-16 h-16 mb-4 opacity-50" />
-                            <p className="font-medium text-sm">Video Player Implementation</p>
-                        </div>
+                        <video 
+                            className="w-full h-full object-cover rounded-2xl"
+                            controls
+                            autoPlay
+                            playsInline
+                        >
+                            <source src="https://cdn.hackclub.com/019ddfe5-f0c1-75a4-9b98-472906bbd6e4/screen_recording_2026-05-01_at_01.06.45.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                 </div>
             )}
@@ -574,7 +655,7 @@ export default function Home() {
             </nav>
 
             <main className="flex-1">
-                <section className="max-w-4xl mx-auto px-6 pt-32 pb-20 text-center">
+                <section className="max-w-4xl mx-auto px-6 pt-32 pb-16 text-center">
                     <div className="space-y-6">
                         <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4 text-[10px] font-bold uppercase tracking-widest shadow-sm">
                             Now open for early access
@@ -595,6 +676,8 @@ export default function Home() {
                         </div>
                     </div>
                 </section>
+
+                <HeroVideoUI />
 
                 <section className="max-w-5xl mx-auto px-6 py-12 mb-16 sm:mb-24">
                     <div className="text-center mb-8 space-y-2">
