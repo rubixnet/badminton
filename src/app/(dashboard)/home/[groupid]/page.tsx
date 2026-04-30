@@ -19,6 +19,10 @@ export default async function Page({ params }: PageProps) {
     const group = await fetchQuery(api.group.getGroupById, { groupId: groupid as any });
 
     if (!group) {
+        if (token) {
+            redirect('/api/auth/logout?reason=group_not_found');
+        }
+
         redirect('/login?error=group_not_found');
     }
 
@@ -38,6 +42,10 @@ export default async function Page({ params }: PageProps) {
     }
 
     if (!profile) {
+        if (token) {
+            redirect('/api/auth/logout?reason=session_invalid');
+        }
+
         const inviteQuery = !group.isPublic && group.inviteCode ? `?invite=${group.inviteCode}` : '';
         redirect(`/login${inviteQuery}`);
     }

@@ -7,6 +7,10 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
+  const isAuthRecovery =
+    pathname === '/login' &&
+    (request.nextUrl.searchParams.has('error') ||
+      request.nextUrl.searchParams.has('logout'));
 
   const isPublicAuthPage = pathname === '/' || pathname === '/login' || pathname.startsWith('/invite');
 
@@ -23,7 +27,7 @@ export async function middleware(request: NextRequest) {
         isPublicAuthPage
     });
 
-    if (groupId && isPublicAuthPage) {
+    if (groupId && isPublicAuthPage && !isAuthRecovery) {
       return NextResponse.redirect(new URL(`/home/${groupId}`, request.url));
     }
   } catch (err) {

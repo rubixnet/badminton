@@ -1,41 +1,80 @@
 "use client";
 
-import { FormEvent, Suspense, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Building2, Loader2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { AlertCircle } from "lucide-react";
 
-function OnboardingForm() {
+function OnboardingContent() {
+  const [step, setStep] = useState(1);
+  const [name, setName] = useState("");
+  const [groupName, setGroupName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const inviteCode = searchParams.get("invite")?.trim() || "";
-  const isJoiningInvite = Boolean(inviteCode);
-  const [name, setName] = useState("");
-  const [clubName, setClubName] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const inviteCode = searchParams.get("invite");
 
-  const canSubmit = useMemo(() => {
-    return Boolean(name.trim() && (isJoiningInvite || clubName.trim()));
-  }, [clubName, isJoiningInvite, name]);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!canSubmit || isSubmitting) return;
+        const data = (await res.json()) as { groupId?: string };
+        if (data.groupId) {
+          router.replace(`/home/${data.groupId}`);
+          return;
+        }
+      } catch {
+        router.push("/login");
+        return;
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setError("");
-    setIsSubmitting(true);
+    fetchUserData();
+  }, [router]);
+
+  const goToGroupStep = () => {
+    if (!name.trim()) {
+      setError("Please enter your name");
+      return;
+    }
+
+    setError(null);
+    setStep(2);
+  };
+
+  const handleComplete = async () => {
+    if (!name.trim()) {
+      setError("Please enter your name");
+      setStep(1);
+      return;
+    }
+
+    if (!inviteCode && !groupName.trim()) {
+      setError("Please enter a group name");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
 
     try {
       const response = await fetch("/api/onboarding", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          clubName,
+          clubName: groupName,
           inviteCode: inviteCode || undefined,
         }),
       });
@@ -46,127 +85,157 @@ function OnboardingForm() {
       };
 
       if (!response.ok || !data.groupId) {
-        throw new Error(data.error || "Unable to complete setup");
+        throw new Error(data.error || "Setup failed. Please try again.");
       }
 
       localStorage.setItem("badminton_onboarded", "true");
       router.replace(`/home/${data.groupId}`);
       router.refresh();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Unable to complete setup");
+      setError(error instanceof Error ? error.message : "Setup failed. Please try again.");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (step === 1) {
+      goToGroupStep();
+    } else {
+      handleComplete();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+          <p className="text-muted-foreground">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/20">
-      <div className="mx-auto grid min-h-screen w-full max-w-6xl grid-cols-1 lg:grid-cols-[0.95fr_1.05fr]">
-        <section className="flex flex-col justify-between border-b border-border/50 px-6 py-8 sm:px-10 lg:border-b-0 lg:border-r lg:px-12">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Building2 className="size-4" />
-            </div>
-            <span className="text-sm font-semibold tracking-tight">Badminton Tracker</span>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <form onSubmit={handleSubmit} className="w-full max-w-md">
+        <AnimatePresence mode="wait">
+          {step === 1 ? (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <div className="space-y-2 text-center">
+                <h1 className="text-3xl font-bold tracking-tight">Let's get started</h1>
+                <p className="text-muted-foreground">What's your name?</p>
+              </div>
 
-          <div className="my-16 max-w-md space-y-5">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-primary">
-              Setup
-            </p>
-            <h1 className="text-4xl font-medium tracking-tight sm:text-5xl">
-              {isJoiningInvite ? "Join your club." : "Create your club."}
-            </h1>
-            <p className="text-base leading-7 text-muted-foreground">
-              Add your player name and connect this account to the group where
-              your matches, members, and analytics will live.
-            </p>
-          </div>
+              {error && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/15 p-3 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
 
-          <p className="text-xs text-muted-foreground">
-            You can invite more players from group settings after setup.
-          </p>
-        </section>
+              <div className="space-y-6">
+                <input
+                  type="text"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoComplete="name"
+                  autoFocus
+                />
+                <Button
+                  type="submit"
+                  disabled={!name.trim()}
+                  className="w-full h-12 rounded-full font-medium"
+                >
+                  Next
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <div className="space-y-2 text-center">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {inviteCode ? "Join the group!" : "Create your badminton club"}
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  {inviteCode
+                    ? "You've been invited to join a group"
+                    : "Set up your group to start tracking matches"}
+                </p>
+              </div>
 
-        <section className="flex items-center px-6 py-10 sm:px-10 lg:px-16">
-          <form onSubmit={handleSubmit} className="w-full max-w-md space-y-8">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-medium tracking-tight">Your details</h2>
-              <p className="text-sm text-muted-foreground">
-                This is what other players will see in match history.
-              </p>
-            </div>
+              {error && (
+                <div className="flex items-center gap-2 rounded-lg bg-destructive/15 p-3 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
 
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="name">Your name</Label>
-                <div className="relative">
-                  <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    className="h-12 pl-10"
-                    autoComplete="name"
+              <div className="space-y-6">
+                {!inviteCode && (
+                  <input
+                    type="text"
+                    placeholder="Club name (e.g. Smash Kings)"
+                    value={groupName}
+                    onChange={(event) => setGroupName(event.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-border bg-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     autoFocus
                   />
-                </div>
-              </div>
-
-              <div className={cn("space-y-2", isJoiningInvite && "opacity-60")}>
-                <Label htmlFor="clubName">
-                  {isJoiningInvite ? "Club name" : "Club or group name"}
-                </Label>
-                <div className="relative">
-                  <Building2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="clubName"
-                    value={isJoiningInvite ? "From your invite link" : clubName}
-                    onChange={(event) => setClubName(event.target.value)}
-                    placeholder="e.g. Sunday Smash Club"
-                    className="h-12 pl-10"
-                    disabled={isJoiningInvite}
-                  />
-                </div>
-                {isJoiningInvite && (
-                  <p className="text-xs text-muted-foreground">
-                    Your invite link decides which club you join.
-                  </p>
                 )}
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setError(null);
+                      setStep(1);
+                    }}
+                    variant="outline"
+                    className="flex-1 h-12 rounded-full font-medium"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submitting || (!inviteCode && !groupName.trim())}
+                    className="flex-1 h-12 rounded-full font-medium bg-primary hover:bg-primary/90"
+                  >
+                    {submitting ? "Setting up..." : inviteCode ? "Join Now" : "Create Club"}
+                  </Button>
+                </div>
               </div>
-            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-            {error && (
-              <p className="rounded-md border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
-              </p>
-            )}
-
-            <Button
-              type="submit"
-              size="lg"
-              disabled={!canSubmit || isSubmitting}
-              className="h-12 w-full rounded-md"
-            >
-              {isSubmitting ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <ArrowRight className="mr-2 size-4" />
-              )}
-              {isJoiningInvite ? "Join Club" : "Create Club"}
-            </Button>
-          </form>
-        </section>
-      </div>
-    </main>
+        <div className="mt-8 text-center text-xs text-muted-foreground">
+          <p>Step {step} of 2</p>
+        </div>
+      </form>
+    </div>
   );
 }
 
-export default function OnboardingPage() {
+export default function Onboarding() {
   return (
     <Suspense fallback={null}>
-      <OnboardingForm />
+      <OnboardingContent />
     </Suspense>
   );
 }
