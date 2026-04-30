@@ -726,15 +726,14 @@ export default function PlayerProfilePage() {
               </CardContent>
             </Card>
 
-            {/* Match Activity Calendar */}
-            <Card className="mb-8">
+            {/* <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="text-base">Match Activity</CardTitle>
               </CardHeader>
-              <CardContent className="lg:flex lg:justify-center">
+              <CardContent className="lg:flex lg:justify-center"> */}
                 <MatchCalendar data={stats.matchesByDate} />
-              </CardContent>
-            </Card>
+              {/* </CardContent>
+            </Card> */}
 
             {/* Highlights */}
             {(stats.bestPartner || stats.nemesis || stats.favoriteVictim) && (
