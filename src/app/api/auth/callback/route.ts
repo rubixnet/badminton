@@ -8,10 +8,25 @@ import { api } from "../../../../../convex/_generated/api";
 const workos = new WorkOS(process.env.WORKOS_API_KEY);
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
+function decodeAuthState(state: string | null) {
+  if (!state) return null;
+
+  try {
+    return JSON.parse(Buffer.from(state, 'base64').toString()) as {
+      invite?: string;
+      via?: string;
+    };
+  } catch (error) {
+    console.error("State decode error", error);
+    return null;
+  }
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
+  const decodedState = decodeAuthState(state);
 
   if (!code) return NextResponse.redirect(new URL('/login', req.url));
 
@@ -22,6 +37,16 @@ export async function GET(req: Request) {
     });
 
     const workosUser = response.user;
+    const workosUserWithName = workosUser as typeof workosUser & {
+      firstName?: string | null;
+      lastName?: string | null;
+    };
+    const fallbackName = workosUser.email.split("@")[0] || "Player";
+    const displayName =
+      [workosUserWithName.firstName, workosUserWithName.lastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || fallbackName;
 
     let profile = await fetchQuery(api.users.getProfile, { workosId: workosUser.id });
 
@@ -32,6 +57,18 @@ export async function GET(req: Request) {
         isOnboarded: false,
       });
     }
+
+    if (decodedState?.invite) {
+      await fetchMutation(api.users.finalizeUser, {
+        workosId: workosUser.id,
+        name: profile?.name || displayName,
+        email: workosUser.email,
+        inviteCode: decodedState.invite,
+      });
+
+      profile = await fetchQuery(api.users.getProfile, { workosId: workosUser.id });
+    }
+
     const token = await new SignJWT({
       userId: workosUser.id,
       email: workosUser.email,
@@ -53,15 +90,12 @@ export async function GET(req: Request) {
 
     const onboardingUrl = new URL('/onboarding', req.url);
 
-    if (state) {
-      try {
-        const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
-        if (decoded.invite) onboardingUrl.searchParams.set("invite", decoded.invite);
-        if (decoded.via) onboardingUrl.searchParams.set("via", decoded.via);
-      } catch (e) { console.error("State decode error", e); }
+    if (decodedState) {
+      if (decodedState.invite) onboardingUrl.searchParams.set("invite", decodedState.invite);
+      if (decodedState.via) onboardingUrl.searchParams.set("via", decodedState.via);
     }
 
-    if (!profile?.isOnboarded || !profile?.groupId) {
+    if (!profile?.groupId) {
       return NextResponse.redirect(onboardingUrl);
     }
 

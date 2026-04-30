@@ -14,11 +14,16 @@ export async function GET() {
     }
 
     const verified = await jwtVerify(token, JWT_SECRET);
-    const payload = verified.payload as { userId: string; email: string };
+    const payload = verified.payload as {
+      userId: string;
+      email: string;
+      groupId?: string;
+    };
 
     return NextResponse.json({
       userId: payload.userId,
       email: payload.email,
+      groupId: payload.groupId,
     });
   } catch (error) {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });

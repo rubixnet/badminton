@@ -29,7 +29,7 @@ export default async function Page({ params }: PageProps) {
             const { payload } = await jwtVerify(token, JWT_SECRET);
             const userProfile = await fetchQuery(api.users.getProfile, { workosId: payload.userId as string });
             
-            if (userProfile && userProfile.groupId === groupid) {
+            if (userProfile?.groupId?.toString() === groupid) {
                 profile = userProfile;
             }
         } catch (err) {
