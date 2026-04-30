@@ -164,7 +164,7 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
                                 : undefined
                             }
                           >
-                            <TooltipTrigger asChild>
+                            <TooltipTrigger >
                               <div
                                 className={cn(
                                   "w-3 h-3 rounded-[3px] cursor-crosshair transition-all duration-300",
