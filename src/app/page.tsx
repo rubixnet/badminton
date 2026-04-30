@@ -852,7 +852,7 @@ export default function Home() {
                                 <p className="text-sm text-muted-foreground">Tell us what you want to see built next for your club.</p>
                             </div>
                             <Button variant="outline" className="shadow-none w-full sm:w-auto shrink-0">
-                                Request Feature
+                                Message Me on Slack
                             </Button>
                         </div>
                     </div>
@@ -866,6 +866,8 @@ export default function Home() {
                                 <p className="text-lg text-muted-foreground leading-relaxed font-normal">
                                     We didn't know if our games were improving or not, a lot of matches are just going to vain without any proper data. This app tells and does a lot of stuff. It's just a tool built by a player to solve a real problem for our own court. Now, it's open for anyone who takes their friendly rivalries a bit too seriously.
                                 </p>
+                                <h2 className="text-xl sm:text-2xl font-medium tracking-tight text-foreground/90">P.S. - We forgot to a take photo of us together :( 🫠 and time ran out 😴  </h2>
+
                                 <div className="pt-4">
                                     <Link href="/home/j577aw31jp6v0aswm6myj2v23h85vht2" className={buttonVariants({ variant: "outline", size: "lg", className: "shadow-none font-medium active:scale-[0.98] transition-transform" })}>
                                         See our match data →
@@ -884,7 +886,7 @@ export default function Home() {
 
                 <section className="max-w-3xl mx-auto px-6 py-24 text-center space-y-6 bg-background">
                     <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-foreground/90">Ready to own the court?</h2>
-                    <p className="text-muted-foreground font-normal text-lg">
+                    <p className="text-muted-foreground font-normal text-balance text-lg">
                         It's completely free to use. Try it out, invite your friends, and see who really dominates the games.
                     </p>
                     <div className="pt-6">
