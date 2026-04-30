@@ -1424,7 +1424,6 @@ export default function AnalyticsPage() {
           </Card>
         )}
 
-        {/* Row 4: Match Activity Calendar */}
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Match Activity</CardTitle>

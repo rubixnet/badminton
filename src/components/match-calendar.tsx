@@ -79,25 +79,19 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
   }, [data]);
 
   const getColorClass = (count: number): string => {
-    if (count === 0) return "bg-muted/30 dark:bg-muted/10";
-    if (count === 1) return "bg-primary/30";
-    if (count <= 3) return "bg-primary/60";
-    if (count <= 5) return "bg-primary/80";
-    return "bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]"; 
+    if (count === 0) return "bg-muted/40 dark:bg-muted/10"; 
+    if (count === 1) return "bg-primary/30";                
+    if (count <= 3) return "bg-primary/60";                 
+    if (count <= 5) return "bg-primary/80";                 
+    return "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.6)]";
   };
 
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      const currentWeekIndex = calendarData.weeks.length - 1;
-      if (currentWeekIndex >= 0) {
-        const weekWidth = 15; // Approximate width per week
-        const scrollPosition = currentWeekIndex * weekWidth;
-        container.scrollLeft = Math.max(
-          0,
-          scrollPosition - container.clientWidth / 2,
-        );
-      }
+      setTimeout(() => {
+        container.scrollLeft = container.scrollWidth;
+      }, 50);
     }
   }, [calendarData.weeks.length]);
 
@@ -111,136 +105,141 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
   };
 
   return (
-    <div className={cn("w-full bg-background border border-border/50 rounded-2xl p-6 shadow-sm", className)}>
-        <TooltipProvider>
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h3 className="text-lg font-bold tracking-tight text-foreground/90">Activity Heatmap</h3>
-                    <p className="text-xs text-muted-foreground">Your performance mapped over the last year.</p>
-                </div>
-                <div className="flex items-center gap-6 text-sm">
-                    <div className="flex flex-col items-end">
-                        <span className="font-black text-xl text-foreground tabular-nums leading-none">
-                            {calendarData.totalMatches}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Matches</span>
-                    </div>
-                    <div className="w-px h-8 bg-border" />
-                    <div className="flex flex-col items-end">
-                        <span className="font-black text-xl text-foreground tabular-nums leading-none">
-                            {calendarData.activeDays}
-                        </span>
-                        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Active Days</span>
-                    </div>
-                </div>
-            </div>
-
+    <div className={cn("w-full flex flex-col items-center", className)}>
+      <TooltipProvider delayDuration={100}>
+        <div className="w-full flex flex-col items-center">
+          <div className="w-full max-w-[100vw] flex justify-center">
+            
             <div
-            ref={scrollContainerRef}
-            className="overflow-x-auto pb-4 max-w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              ref={scrollContainerRef}
+              className="overflow-x-auto pb-6 pt-2 px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
             >
-            <div className="inline-flex flex-col min-w-max">
-                <div className="flex text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 pl-7">
-                {calendarData.months.map((month, index) => {
+              <div className="inline-flex flex-col min-w-max mx-auto">
+                
+                {/* Month labels */}
+                <div className="flex text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3 pl-8">
+                  {calendarData.months.map((month, index) => {
                     const nextMonth = calendarData.months[index + 1];
                     const span = nextMonth
-                    ? nextMonth.colStart - month.colStart
-                    : calendarData.weeks.length - month.colStart;
+                      ? nextMonth.colStart - month.colStart
+                      : calendarData.weeks.length - month.colStart;
                     const width = span * 15; // 12px box + 3px gap
                     return (
-                    <div
+                      <div
                         key={index}
-                        className="text-left shrink-0"
+                        className="text-left shrink-0 select-none"
                         style={{ width: `${width}px` }}
-                    >
+                      >
                         {span >= 4 ? month.name : ""}
-                    </div>
+                      </div>
                     );
-                })}
+                  })}
                 </div>
 
                 <div className="flex gap-[3px]">
-                <div className="flex flex-col gap-[3px] text-[10px] font-bold text-muted-foreground w-6 shrink-0">
-                    {["", "M", "", "W", "", "F", ""].map((day, index) => (
-                    <div
+                  <div className="flex flex-col gap-[3px] text-[10px] font-bold text-muted-foreground w-7 shrink-0 select-none">
+                    {["", "Mon", "", "Wed", "", "Fri", ""].map((day, index) => (
+                      <div
                         key={index}
-                        className="h-3 flex items-center justify-end pr-2"
-                    >
+                        className="h-3 flex items-center justify-end pr-2 leading-none"
+                      >
                         {day}
-                    </div>
+                      </div>
                     ))}
-                </div>
+                  </div>
 
-                <div className="flex gap-[3px]">
+                  <div className="flex gap-[3px]">
                     {calendarData.weeks.map((week, weekIndex) => (
-                    <div key={weekIndex} className="flex flex-col gap-[3px]">
+                      <div key={weekIndex} className="flex flex-col gap-[3px]">
                         {weekIndex === 0 &&
-                        Array.from({ length: 7 - week.length }).map((_, i) => (
+                          Array.from({ length: 7 - week.length }).map((_, i) => (
                             <div key={`empty-${i}`} className="w-3 h-3" />
-                        ))}
+                          ))}
+                          
                         {week.map((day, dayIndex) => (
-                        <Tooltip
+                          <Tooltip
                             key={dayIndex}
                             open={
-                            isMobile
+                              isMobile
                                 ? openTooltip === `${weekIndex}-${dayIndex}`
                                 : undefined
                             }
-                        >
-                            <TooltipTrigger >
-                            <div
+                          >
+                            <TooltipTrigger asChild>
+                              <div
                                 className={cn(
-                                    "w-3 h-3 rounded-[2px] cursor-crosshair transition-all duration-200",
-                                    getColorClass(day.count),
-                                    day.count > 0 && "hover:ring-1 hover:ring-foreground/50 hover:scale-110 z-10 relative"
+                                  "w-3 h-3 rounded-[3px] cursor-crosshair transition-all duration-300",
+                                  getColorClass(day.count),
+                                  day.count > 0 && "hover:ring-1 hover:ring-primary/50 hover:scale-125 hover:z-10 relative z-0"
                                 )}
                                 onClick={
-                                isMobile
+                                  isMobile
                                     ? () =>
                                         setOpenTooltip(
-                                        openTooltip === `${weekIndex}-${dayIndex}`
+                                          openTooltip === `${weekIndex}-${dayIndex}`
                                             ? null
                                             : `${weekIndex}-${dayIndex}`,
                                         )
                                     : undefined
                                 }
-                            />
+                              />
                             </TooltipTrigger>
+                            
                             {day.count > 0 && (
                                 <TooltipContent
-                                    side="top"
-                                    className="text-xs bg-background text-foreground border-border/50 shadow-xl px-3 py-2 rounded-lg"
+                                  side="top"
+                                  className="text-xs bg-background/95 backdrop-blur-md text-foreground border border-border/50 shadow-xl px-3 py-2 rounded-lg"
                                 >
-                                    <p className="font-bold">{formatDate(day.dateStr)}</p>
-                                    <p className="text-muted-foreground tabular-nums mt-0.5">
-                                        {day.count} match{day.count !== 1 ? "es" : ""}
-                                    </p>
+                                  <p className="font-bold">{formatDate(day.dateStr)}</p>
+                                  <p className="text-muted-foreground tabular-nums mt-0.5 font-medium">
+                                    <span className="text-foreground">{day.count}</span> match{day.count !== 1 ? "es" : ""}
+                                  </p>
                                 </TooltipContent>
                             )}
-                        </Tooltip>
+                          </Tooltip>
                         ))}
-                    </div>
+                      </div>
                     ))}
+                  </div>
                 </div>
-                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Legend and Summary Stats Layout */}
+          <div className="w-full max-w-[800px] flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 px-4 select-none">
+              
+            {/* Quick Stat Summary */}
+            <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1.5 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
+                    <span className="font-black text-foreground tabular-nums tracking-tight">
+                        {calendarData.totalMatches}
+                    </span>
+                    <span className="uppercase tracking-wider text-[9px] font-bold text-muted-foreground">Matches</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-muted/30 px-3 py-1.5 rounded-full border border-border/50">
+                    <span className="font-black text-foreground tabular-nums tracking-tight">
+                        {calendarData.activeDays}
+                    </span>
+                    <span className="uppercase tracking-wider text-[9px] font-bold text-muted-foreground">Active Days</span>
+                </div>
             </div>
 
-            {/* Legend */}
-            <div className="flex items-center justify-start gap-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-2">
-                <span>Less</span>
-                <div className="flex gap-1">
-                    <div className={cn("w-3 h-3 rounded-[2px]", getColorClass(0))} />
-                    <div className={cn("w-3 h-3 rounded-[2px]", getColorClass(1))} />
-                    <div className={cn("w-3 h-3 rounded-[2px]", getColorClass(2))} />
-                    <div className={cn("w-3 h-3 rounded-[2px]", getColorClass(4))} />
-                    <div className={cn("w-3 h-3 rounded-[2px]", getColorClass(6))} />
-                </div>
-                <span>More</span>
+            <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              <span>Less</span>
+              <div className="flex gap-1.5">
+                <div className={cn("w-3 h-3 rounded-[3px]", getColorClass(0))} />
+                <div className={cn("w-3 h-3 rounded-[3px]", getColorClass(1))} />
+                <div className={cn("w-3 h-3 rounded-[3px]", getColorClass(2))} />
+                <div className={cn("w-3 h-3 rounded-[3px]", getColorClass(4))} />
+                <div className={cn("w-3 h-3 rounded-[3px]", getColorClass(6))} />
+              </div>
+              <span>More</span>
             </div>
+            
+          </div>
         </div>
-        </TooltipProvider>
+      </TooltipProvider>
     </div>
   );
 }
