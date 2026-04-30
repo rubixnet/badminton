@@ -516,7 +516,7 @@ function VideoDialogUI({ className }: { className?: string }) {
                 className="relative w-full aspect-video bg-muted/10 border border-border/50 rounded-2xl overflow-hidden group cursor-pointer shadow-sm"
             >
                 <img 
-                    src="https://images.unsplash.com/photo-1611250282006-4484dd3fba6b?q=80&w=2000&auto=format&fit=crop" 
+                    src="https://user-cdn.hackclub-assets.com/019de004-0b06-7b6a-bd86-7a0ff8751b38/Screenshot%202026-05-01%20at%2001.40.15.png" 
                     alt="Custom Modes Thumbnail" 
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
@@ -867,7 +867,7 @@ export default function Home() {
                                     We didn't know if our games were improving or not, a lot of matches are just going to vain without any proper data. This app tells and does a lot of stuff. It's just a tool built by a player to solve a real problem for our own court. Now, it's open for anyone who takes their friendly rivalries a bit too seriously.
                                 </p>
                                 <div className="pt-4">
-                                    <Link href="/analytics" className={buttonVariants({ variant: "outline", size: "lg", className: "shadow-none font-medium active:scale-[0.98] transition-transform" })}>
+                                    <Link href="/home/j577aw31jp6v0aswm6myj2v23h85vht2" className={buttonVariants({ variant: "outline", size: "lg", className: "shadow-none font-medium active:scale-[0.98] transition-transform" })}>
                                         See our match data →
                                     </Link>
                                 </div>

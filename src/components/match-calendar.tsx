@@ -30,7 +30,7 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
 
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 364); // 365 days including today
+    startDate.setDate(endDate.getDate() - 364); 
 
     const dateMap = new Map<string, number>();
     data.forEach((item) => {
