@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
-import { fetchMutation } from "convex/nextjs";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { api } from "../../../../convex/_generated/api";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
@@ -40,18 +40,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Club name is required" }, { status: 400 });
     }
 
-    const result = await fetchMutation(api.users.completeOnboarding, {
+    const userIdFromFinalize = await fetchMutation(api.users.finalizeUser, {
       workosId: userId,
       email,
       name,
-      clubName: inviteCode ? undefined : clubName,
       inviteCode: inviteCode || undefined,
     });
+
+    if (!inviteCode) {
+      await fetchMutation(api.group.createGroup, {
+        name: clubName!,
+        adminId: userIdFromFinalize,
+      });
+    }
+
+    const profile = await fetchQuery(api.users.getProfile, { workosId: userId });
+
+    if (!profile?.groupId) {
+      return NextResponse.json(
+        { error: "Setup could not attach your account to a group." },
+        { status: 500 },
+      );
+    }
 
     const refreshedToken = await new SignJWT({
       userId,
       email,
-      groupId: result.groupId,
+      groupId: profile.groupId,
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
@@ -66,7 +81,7 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 60,
     });
 
-    return NextResponse.json({ groupId: result.groupId });
+    return NextResponse.json({ groupId: profile.groupId });
   } catch (error) {
     console.error("Onboarding error:", error);
     const message =

@@ -57,6 +57,7 @@ export const finalizeUser = mutation({
 
     const patchData: any = {
       name: args.name,
+      email: args.email,
       isOnboarded: true,
     };
 
@@ -68,10 +69,12 @@ export const finalizeUser = mutation({
         .withIndex("byInviteCode", (q) => q.eq("inviteCode", inviteCode))
         .unique();
 
-      if (group) {
-        patchData.groupId = group._id;
-        patchData.role = "member";
+      if (!group) {
+        throw new Error("Invitation link is no longer valid.");
       }
+
+      patchData.groupId = group._id;
+      patchData.role = "member";
     }
 
     await ctx.db.patch(user._id, patchData);

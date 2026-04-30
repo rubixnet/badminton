@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
+import { jwtVerify, SignJWT } from 'jose';
+import { fetchQuery } from 'convex/nextjs';
+import { api } from '../../../../../convex/_generated/api';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
@@ -20,12 +22,49 @@ export async function GET() {
       groupId?: string;
     };
 
-    return NextResponse.json({
-      userId: payload.userId,
-      email: payload.email,
-      groupId: payload.groupId,
+    const profile = await fetchQuery(api.users.getProfile, {
+      workosId: payload.userId,
     });
+
+    if (!profile) {
+      const response = NextResponse.json({ error: "Profile not found" }, { status: 401 });
+      response.cookies.delete("session");
+      return response;
+    }
+
+    const groupId = profile.groupId?.toString();
+    const response = NextResponse.json({
+      userId: payload.userId,
+      email: profile.email || payload.email,
+      name: profile.name,
+      isOnboarded: profile.isOnboarded,
+      groupId,
+    });
+
+    if (groupId && payload.groupId !== groupId) {
+      const refreshedToken = await new SignJWT({
+        userId: payload.userId,
+        email: profile.email || payload.email,
+        groupId,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('60d')
+        .sign(JWT_SECRET);
+
+      response.cookies.set('session', refreshedToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 60,
+      });
+    }
+
+    return response;
   } catch (error) {
-    return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    const response = NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    response.cookies.delete("session");
+    return response;
   }
 }
