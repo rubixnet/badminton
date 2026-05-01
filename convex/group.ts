@@ -28,7 +28,6 @@ export const createGroup = mutation({
       activeSheetId: process.env.GOOGLE_SHEET_ID || "",
     });
 
-    // Link the creator to this group as ADMIN immediately
     await ctx.db.patch(args.adminId, {
       groupId: groupId,
       role: "admin"
@@ -99,13 +98,23 @@ export const updatePublicScores = mutation({
       .withIndex("byWorkosId", (q) => q.eq("workosId", args.adminWorkosId))
       .unique();
 
-    if (!admin || admin.groupId !== args.groupId) {
-      throw new Error("Only this group's admin can change public scores.");
+
+    if (!admin) {
+      throw new Error("Fail Gate 1: Could not find user with that WorkOS ID.");
+    }
+
+    if (admin.groupId?.toString() !== args.groupId.toString()) {
+      throw new Error("Fail Gate 2: User's stored groupId does not match.");
     }
 
     const group = await ctx.db.get(args.groupId);
-    if (!group || group.adminId !== admin._id) {
-      throw new Error("Only this group's admin can change public scores.");
+
+    if (!group) {
+      throw new Error("Fail Gate 3: Group not found.");
+    }
+
+    if (group.adminId.toString() !== admin._id.toString()) {
+      throw new Error("Fail Gate 4: User is not the admin of this group.");
     }
 
     await ctx.db.patch(args.groupId, { isPublic: args.isPublic });
