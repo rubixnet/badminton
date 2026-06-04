@@ -25,3 +25,10 @@ Badminton Tracker is a fast, zero-clutter workspace designed for your weekend ma
 
 The Story
 This application was initially built as a personal tool. A lot of weekend matches were going undocumented, making it impossible to tell if anyone was actually improving or just getting lucky. Badminton Tracker was created to provide hard data for local courts, and it is now open for anyone who takes their friendly rivalries a bit too seriously.
+
+
+- todo list 
+
+add colors, make the homepage a bit better and detailed! 
+- making the plus work // done! 
+- making sure that one team wins here! no tie! : ) 

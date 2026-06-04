@@ -27,6 +27,7 @@ import { useMobile } from "@/hooks/use-mobile";
 interface NavbarProps {
   title?: string;
   onCreateMatch?: () => void;
+  isAuthenticated?: boolean;
 }
 
 interface PlayerDropdownProps {
@@ -62,7 +63,7 @@ function PlayerDropdown({ players, onSelectPlayer }: PlayerDropdownProps) {
   );
 }
 
-export function Navbar({ title, onCreateMatch }: NavbarProps) {
+export function Navbar({ title, onCreateMatch, isAuthenticated }: NavbarProps) {
   const pathname = usePathname();
   const params = useParams();
   const router = useRouter();
@@ -72,9 +73,10 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
 
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-
   const [allPlayers, setAllPlayers] = useState<string[]>([]);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [sessionAvailable, setSessionAvailable] = useState(false);
+  const isLoggedIn = isAuthenticated ?? sessionAvailable;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,6 +92,33 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
+
+  useEffect(() => {
+    if (isAuthenticated !== undefined) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkSession = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { credentials: "include" });
+        if (!cancelled) {
+          setSessionAvailable(response.ok);
+        }
+      } catch {
+        if (!cancelled) {
+          setSessionAvailable(false);
+        }
+      }
+    };
+
+    checkSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!groupId) return;
@@ -205,23 +234,23 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
                   </Popover>
                 )}
 
-                <Link
-                  href={`/home/${groupId}/settings`}
-                  className={cn(
-                    "flex items-center gap-2 h-full text-sm font-medium transition-all px-3 border-b-2",
-                    pathname.includes(`/home/${groupId}/settings`) ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                  )}
-                >
-                  <SettingsIcon className="h-4 w-4 hidden lg:block" />
-                  Settings
-                </Link>
+                {isLoggedIn && (
+                  <Link
+                    href={`/home/${groupId}/settings`}
+                    className={cn(
+                      "flex items-center gap-2 h-full text-sm font-medium transition-all px-3 border-b-2",
+                      pathname.includes(`/home/${groupId}/settings`) ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    )}
+                  >
+                    <SettingsIcon className="h-4 w-4 hidden lg:block" />
+                    Settings
+                  </Link>
+                )}
               </nav>
 
-              {onCreateMatch && (
+              {isLoggedIn && onCreateMatch && (
                 <div className="flex items-center pl-1">
-                  <Button
-                    onClick={onCreateMatch}
-                  >
+                  <Button onClick={onCreateMatch}>
                     <Plus className="h-4 w-4 mr-1.5" />
                     <span className="font-semibold">Create Match</span>
                   </Button>
@@ -249,7 +278,7 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
               <BarChart2 className={cn("h-6 w-6", pathname === `/home/${groupId}/analytics` ? "text-primary" : "text-muted-foreground")} />
             </Link>
 
-            {onCreateMatch && (
+            {isLoggedIn && onCreateMatch && (
               <button
                 onClick={onCreateMatch}
                 className="relative -top-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background transition-transform active:scale-90"
@@ -257,6 +286,7 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
                 <Plus className="h-7 w-7" />
               </button>
             )}
+            
             <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
               <PopoverTrigger >
                 <button className="flex flex-col items-center p-2 outline-none">
@@ -268,9 +298,11 @@ export function Navbar({ title, onCreateMatch }: NavbarProps) {
               </PopoverContent>
             </Popover>
 
-            <Link href={`/home/${groupId}/settings`} className="flex flex-col items-center p-2">
-              <SettingsIcon className={cn("h-6 w-6", pathname.includes(`/home/${groupId}/settings`) ? "text-primary" : "text-muted-foreground")} />
-            </Link>
+            {isLoggedIn && (
+              <Link href={`/home/${groupId}/settings`} className="flex flex-col items-center p-2">
+                <SettingsIcon className={cn("h-6 w-6", pathname.includes(`/home/${groupId}/settings`) ? "text-primary" : "text-muted-foreground")} />
+              </Link>
+            )}
           </div>
         </nav>
       )}

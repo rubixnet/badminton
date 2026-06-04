@@ -136,6 +136,7 @@ export default function HomeClient({ user, group }: HomeClientProps) {
         <Navbar
           title={`${group.name} Tracker`}
           onCreateMatch={canCreateMatch ? triggerCreateMatch : undefined}
+          isAuthenticated={canCreateMatch}
         />
 
         <main className="mx-auto max-w-6xl px-3 pb-12 pt-3 md:px-6 md:pt-5">
