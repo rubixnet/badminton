@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

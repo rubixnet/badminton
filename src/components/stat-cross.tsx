@@ -16,8 +16,7 @@ export function StatRadar({
 }: StatRadarProps) {
   // Calculate positions on 0-100 scale (for SVG viewBox)
   const center = 50;
-  const maxRadius = 40; // Max distance from center
-  const labelOffset = 48; // Distance for labels
+  const maxRadius = 40;
 
   // Normalize values to percentages (0-1)
   const topPct = Math.min(stats.top.value / stats.top.max, 1);

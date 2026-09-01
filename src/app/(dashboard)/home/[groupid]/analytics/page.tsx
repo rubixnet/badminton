@@ -3,8 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Card,
-  CardContent,
-  CardHeader,
+  CardContent,CardHeader,
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
@@ -23,15 +22,13 @@ import {
   Medal,
   Filter,
   ChevronDown,
-  Target,
   Users,
   User,
   Calculator,
   Handshake,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   CalendarIcon,
+  Palette,
+  Check,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { PlayerOfTheDay } from "@/components/player-of-the-day";
@@ -77,6 +74,17 @@ type DateRangeOption =
   | "all"
   | "custom";
 
+const PRESET_COLORS = [
+  { name: "Blue", value: "hsl(220, 70%, 50%)" },
+  { name: "Red", value: "hsl(0, 70%, 50%)" },
+  { name: "Green", value: "hsl(140, 60%, 45%)" },
+  { name: "Purple", value: "hsl(280, 65%, 55%)" },
+  { name: "Orange", value: "hsl(25, 90%, 50%)" },
+  { name: "Teal", value: "hsl(180, 60%, 45%)" },
+  { name: "Pink", value: "hsl(330, 70%, 55%)" },
+  { name: "Yellow", value: "hsl(45, 90%, 50%)" },
+];
+
 export default function AnalyticsPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [strictMode, setStrictMode] = useState(false);
@@ -106,7 +114,7 @@ export default function AnalyticsPage() {
             from: parsed.from ? new Date(parsed.from) : undefined,
             to: parsed.to ? new Date(parsed.to) : undefined,
           };
-        } catch (e) {
+        } catch {
           return {};
         }
       }
@@ -116,14 +124,14 @@ export default function AnalyticsPage() {
 
   const [showCalendar, setShowCalendar] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const { getPlayerColor } = useColorMode();
+  
+  const colorModeContext = useColorMode();
+  const { getPlayerColor } = colorModeContext;
 
-  // Helper to navigate to player profile
   const goToPlayer = (name: string) => {
     router.push(`/home/${groupId}/analytics/player/${encodeURIComponent(name)}`);
   };
 
-  // Get all unique player names
   const allPlayers = useMemo(() => {
     const players = new Set<string>();
     matches.forEach((m) => {
@@ -133,14 +141,12 @@ export default function AnalyticsPage() {
     return Array.from(players).sort();
   }, [matches]);
 
-  // Persist timePeriod to localStorage
   useEffect(() => {
     if (groupId) {
       localStorage.setItem(`badminton_analytics_timeperiod_${groupId}`, timePeriod);
     }
   }, [timePeriod, groupId]);
 
-  // Persist customDateRange to localStorage
   useEffect(() => {
     if (groupId && (customDateRange.from || customDateRange.to)) {
       localStorage.setItem(
@@ -390,10 +396,8 @@ export default function AnalyticsPage() {
         });
       });
 
-      // Transform to arrays
       const players = Object.keys(playerStats);
 
-      // Win Rates (Min 3 matches) with change from previous period
       const winRates = players
         .map((name) => {
           const s = playerStats[name];
@@ -408,7 +412,6 @@ export default function AnalyticsPage() {
             (currentWinRate - rawWinRate).toFixed(1),
           );
 
-          // Calculate previous period win rate
           const prevTotals = previousWinRateTotals[name];
           let prevWinRate = 0;
           let change = 0;
@@ -436,8 +439,7 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Average Points (Min 3 matches)
-      const avgPoints = players
+        const avgPoints = players
         .map((name) => {
           const s = playerStats[name];
           return {
@@ -454,7 +456,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Most Wins
       const mostWins = players
         .map((name) => ({
           name,
@@ -464,7 +465,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Most Points (Total)
       const mostPoints = players
         .map((name) => ({
           name,
@@ -474,7 +474,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Daily Bonus Points
       const dailyBonusPoints: any[] = [];
       const dateMap: Record<string, Record<string, number>> = {};
       subset.forEach((m) => {
@@ -501,7 +500,6 @@ export default function AnalyticsPage() {
       });
       dailyBonusPoints.sort((a, b) => a.date.localeCompare(b.date));
 
-      // Bonus Players for chart config
       const bonusPlayersSet = new Set<string>();
       Object.values(dateMap).forEach((day) =>
         Object.keys(day).forEach((p) => bonusPlayersSet.add(p)),
@@ -512,31 +510,25 @@ export default function AnalyticsPage() {
           Math.abs(playerStats[a].bonusPoints),
       );
 
-      // Points Progression
-      // Get top 5 players by Wins (to show most relevant players)
       const top5 = mostWins.slice(0, 5).map((p) => p.name);
 
       const winRateOverTime = computeWinRateOverTime(subset, top5);
 
-      // Impact over time - Calculate daily impact for top players
       const impactOverTime: Array<{ date: string;[key: string]: any }> = [];
       const impactByDate: Record<string, Record<string, { impact: number; count: number }>> = {};
 
-      // Group matches by date and calculate cumulative impact for each player
       const sortedMatches = [...subset].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
       const playerMatchHistory: Record<string, Match[]> = {};
 
       sortedMatches.forEach((match) => {
         const date = match.createdAt.split("T")[0];
 
-        // Track match history for each player
         [...match.team1.players, ...match.team2.players].forEach((p) => {
           if (!p.name) return;
           const name = p.name.trim();
           if (!playerMatchHistory[name]) playerMatchHistory[name] = [];
           playerMatchHistory[name].push(match);
 
-          // Calculate impact at this point
           const totals = computePlayerWinRateTotals(playerMatchHistory[name]);
           if (totals[name] && totals[name].rawMatches >= 3) {
             const winRate = computeWinRatePercent(totals[name], 3);
@@ -553,7 +545,6 @@ export default function AnalyticsPage() {
         });
       });
 
-      // Convert to chart data format
       Object.entries(impactByDate).forEach(([date, players]) => {
         const entry: any = { date };
         Object.entries(players).forEach(([name, data]) => {
@@ -563,7 +554,6 @@ export default function AnalyticsPage() {
       });
       impactOverTime.sort((a, b) => a.date.localeCompare(b.date));
 
-      // Get players who have impact data
       const impactPlayersSet = new Set<string>();
       Object.values(impactByDate).forEach((day) =>
         Object.keys(day).forEach((p) => impactPlayersSet.add(p)),
@@ -576,7 +566,6 @@ export default function AnalyticsPage() {
         },
       );
 
-      // Activity by Day
       const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       const activityByDay = daysOfWeek.map((day) => ({ day, matches: 0 }));
       subset.forEach((m) => {
@@ -584,7 +573,6 @@ export default function AnalyticsPage() {
         activityByDay[d.getDay()].matches++;
       });
 
-      // Matches by Date for calendar
       const matchesByDate: Record<string, number> = {};
       subset.forEach((m) => {
         const date = m.createdAt.split("T")[0];
@@ -611,7 +599,6 @@ export default function AnalyticsPage() {
       };
     };
 
-    // 3. Classify
     const singlesMatches = filteredMatches.filter(
       (m) => m.team1.players.length + m.team2.players.length <= 3,
     );
@@ -619,7 +606,6 @@ export default function AnalyticsPage() {
       (m) => m.team1.players.length + m.team2.players.length === 4,
     );
 
-    // Previous period subsets
     const prevSinglesMatches = previousPeriodMatches.filter(
       (m) => m.team1.players.length + m.team2.players.length <= 3,
     );
@@ -627,7 +613,6 @@ export default function AnalyticsPage() {
       (m) => m.team1.players.length + m.team2.players.length === 4,
     );
 
-    // 5. Duo Stats (partnerships)
     const calculateDuoStats = (subset: Match[]) => {
       const duoStats: Record<
         string,
@@ -655,7 +640,6 @@ export default function AnalyticsPage() {
       };
 
       subset.forEach((m) => {
-        // Only process doubles matches (2 players per team)
         if (m.team1.players.length === 2 && m.team2.players.length === 2) {
           const t1p1 = m.team1.players[0]?.name || "";
           const t1p2 = m.team1.players[1]?.name || "";
@@ -704,7 +688,6 @@ export default function AnalyticsPage() {
 
       const duos = Object.keys(duoStats);
 
-      // Win Rates (Min 2 matches for duos)
       const duoWinRates = duos
         .map((key) => {
           const s = duoStats[key];
@@ -727,7 +710,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Average Points (Min 2 matches)
       const duoAvgPoints = duos
         .map((key) => {
           const s = duoStats[key];
@@ -749,7 +731,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Most Wins
       const duoMostWins = duos
         .map((key) => {
           const s = duoStats[key];
@@ -766,7 +747,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Most Points
       const duoMostPoints = duos
         .map((key) => {
           const s = duoStats[key];
@@ -783,7 +763,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Most matches played together
       const duoMostMatches = duos
         .map((key) => {
           const s = duoStats[key];
@@ -800,7 +779,6 @@ export default function AnalyticsPage() {
         .sort((a, b) => b.value - a.value)
         .slice(0, 10);
 
-      // Top duo (by wins)
       const topDuo = duoMostWins[0] || null;
 
       return {
@@ -816,7 +794,6 @@ export default function AnalyticsPage() {
 
     const duoData = calculateDuoStats(doublesMatches);
 
-    // 4. Player of the Day
     const todayMatches = matches.filter((m) =>
       m.createdAt.startsWith(todayStr),
     );
@@ -845,7 +822,7 @@ export default function AnalyticsPage() {
       doubles: calculateSubsetStats(doublesMatches, prevDoublesMatches, strictMode),
       duos: duoData,
       playerOfTheDay,
-      totalMatches: matches.length, // Total all time
+      totalMatches: matches.length, 
       totalSinglesAllTime: matches.filter(
         (m) => m.team1.players.length + m.team2.players.length <= 3,
       ).length,
@@ -874,15 +851,12 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
 
-          {/* Controls Skeleton */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-4">
             <Skeleton className="h-10 w-full md:w-[400px]" />
             <Skeleton className="h-10 w-full md:w-[200px]" />
           </div>
 
-          {/* Content Skeleton */}
           <div className="space-y-8">
-            {/* Top Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {[1, 2, 3, 4].map((i) => (
                 <Card key={i} className="border">
@@ -952,7 +926,6 @@ export default function AnalyticsPage() {
 
     return (
       <div className="space-y-4  animate-in fade-in duration-500">
-        {/* Top Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -1042,7 +1015,6 @@ export default function AnalyticsPage() {
           </Card>
         </div>
 
-        {/* Row 1: Win Rates & Average Points */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           <Card>
             <CardHeader>
@@ -1462,6 +1434,7 @@ export default function AnalyticsPage() {
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     className="text-xs"
+                    dataKey="date"
                     interval="preserveStartEnd"
                     angle={-45}
                     tick={{ textAnchor: "end" }} 
@@ -2246,6 +2219,124 @@ export default function AnalyticsPage() {
             </TabsList>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
+              {/* Chart Colors Picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    title="Chart Colors"
+                  >
+                    <Palette className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2" align="end">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground px-2 py-1">
+                      Chart Colors
+                    </p>
+                    <Button
+                      variant={
+                        colorModeContext.colorMode === "monochrome"
+                          ? "default"
+                          : "ghost"
+                      }
+                      size="sm"
+                      className="w-full justify-start gap-2"
+                      onClick={() =>
+                        colorModeContext?.setColorMode("monochrome")
+                      }
+                    >
+                      {colorModeContext.colorMode === "monochrome" && (
+                        <Check className="h-4 w-4" />
+                      )}
+                      <span
+                        className={
+                          colorModeContext.colorMode === "monochrome"
+                            ? ""
+                            : "ml-6"
+                        }
+                      >
+                        Monochrome
+                      </span>
+                    </Button>
+                    <Button
+                      variant={
+                        colorModeContext.colorMode === "multicolor"
+                          ? "default"
+                          : "ghost"
+                      }
+                      size="sm"
+                      className="w-full justify-start gap-2"
+                      onClick={() =>
+                        colorModeContext?.setColorMode("multicolor")
+                      }
+                    >
+                      {colorModeContext.colorMode === "multicolor" && (
+                        <Check className="h-4 w-4" />
+                      )}
+                      <span
+                        className={
+                          colorModeContext.colorMode === "multicolor"
+                            ? ""
+                            : "ml-6"
+                        }
+                      >
+                        Multicolor
+                      </span>
+                    </Button>
+                    <Button
+                      variant={
+                        colorModeContext.colorMode === "custom"
+                          ? "default"
+                          : "ghost"
+                      }
+                      size="sm"
+                      className="w-full justify-start gap-2"
+                      onClick={() => colorModeContext?.setColorMode("custom")}
+                    >
+                      {colorModeContext.colorMode === "custom" && (
+                        <Check className="h-4 w-4" />
+                      )}
+                      <span
+                        className={
+                          colorModeContext.colorMode === "custom" ? "" : "ml-6"
+                        }
+                      >
+                        Custom Accent
+                      </span>
+                    </Button>
+
+                    {colorModeContext.colorMode === "custom" && (
+                      <div className="pt-2 border-t mt-2">
+                        <p className="text-xs text-muted-foreground px-2 mb-2">
+                          Select accent color
+                        </p>
+                        <div className="grid grid-cols-4 gap-2 px-1">
+                          {PRESET_COLORS.map((color) => (
+                            <button
+                              key={color.name}
+                              className={`w-full aspect-square rounded-md border-2 transition-all ${
+                                colorModeContext?.accentColor === color.value
+                                  ? "border-foreground scale-110"
+                                  : "border-transparent hover:scale-105"
+                              }`}
+                              style={{ backgroundColor: color.value }}
+                              onClick={() =>
+                                colorModeContext?.setAccentColor(color.value)
+                              }
+                              title={color.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Date Filter */}
               <Popover
                 open={popoverOpen}
                 onOpenChange={(open) => {
@@ -2255,7 +2346,7 @@ export default function AnalyticsPage() {
                   }
                 }}
               >
-                <PopoverTrigger >
+                <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className="w-full md:w-60 justify-between"

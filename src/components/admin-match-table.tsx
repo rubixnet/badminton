@@ -221,7 +221,7 @@ export function AdminMatchTable({
       await onUpdate(updatedMatch);
       setEditingId(null);
       toast({ title: "Success", description: "Match updated" });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update match",
@@ -285,7 +285,7 @@ export function AdminMatchTable({
       }
 
       toast({ title: "Success", description: "Match created" });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to create match",
@@ -531,7 +531,7 @@ export function AdminMatchTable({
         },
       },
     ],
-    [editingId, isEditCalendarOpen, onDelete, updateEditForm],
+    [editingId, isEditCalendarOpen, onDelete, updateEditForm, handleDuplicate, handleSave],
   );
 
   const table = useReactTable({

@@ -140,7 +140,7 @@ export function LiquidGlassLayer({
   scaleRatio = 1.0,
   blur = 4,
   specularOpacity = 0.5,
-  specularSat = 1, // Increased saturation for better "sheen"
+  specularSat: _specularSat = 1, // Increased saturation for better "sheen"
   tintColor = "255,255,255",
   tintOpacity = 0.05,
   innerShadow = "rgba(255,255,255,0.15)",

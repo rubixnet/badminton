@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { fetchQuery, fetchMutation } from "convex/nextjs";
+import { fetchQuery } from "convex/nextjs";
 import { api } from "../../../../convex/_generated/api";
 import { getGoogleSheetsClient } from "@/lib/google-sheets";
 import { mapGoogleVisualizationRowToMatch as mapgoogle } from "@/lib/match-mapping";
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       const cookieStore = await cookies();
       const token = cookieStore.get("session")?.value;
       if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      try { await jwtVerify(token, JWT_SECRET); } catch (e) {
+      try { await jwtVerify(token, JWT_SECRET); } catch {
         return NextResponse.json({ error: "Invalid session" }, { status: 401 });
       }
     }
@@ -62,17 +62,15 @@ export async function GET(request: NextRequest) {
         page,
         totalPages: matches.length < limit ? page : page + 1,
       });
-    } catch (e) {
-      return NextResponse.json({ matches: [], error: "Invalid data format" }, { status: 500 });
+    } catch {
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json({ matches: [], error: "Fetch failed" }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // POST ALWAYS REQUIRES AUTH
     const cookieStore = await cookies();
     const token = cookieStore.get("session")?.value;
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -109,7 +107,122 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ id: matchId, ...body });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to create" }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("session")?.value;
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await request.json();
+    const matchId = body.id;
+
+    if (!matchId) {
+      return NextResponse.json({ error: "Match ID is required" }, { status: 400 });
+    }
+
+    const sheets = await getGoogleSheetsClient();
+
+    const readResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID!,
+      range: `${SHEET_NAME}!A:Q`,
+    });
+
+    const rows = readResponse.data.values || [];
+    let rowIndex = -1;
+
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i][0] === matchId) {
+        rowIndex = i;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
+
+    const updatedValues = [[
+      matchId,
+      body.createdAt || new Date().toISOString(),
+      body.team1.score > body.team2.score ? "team1" : "team2",
+      body.team1.score,
+      body.team2.score,
+      body.team1.players[0]?.name || "",
+      body.team1.players[0]?.bonusPoints || 0,
+      body.team1.players[1]?.name || "",
+      body.team1.players[1]?.bonusPoints || 0,
+      body.team2.players[0]?.name || "",
+      body.team2.players[0]?.bonusPoints || 0,
+      body.team2.players[1]?.name || "",
+      body.team2.players[1]?.bonusPoints || 0,
+      JSON.stringify(body.checkpoints || []),
+      body.groupId,
+      body.userId,
+      body.userName
+    ]];
+
+    const rangeToUpdate = `${SHEET_NAME}!A${rowIndex + 1}:Q${rowIndex + 1}`;
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID!,
+      range: rangeToUpdate,
+      valueInputOption: "RAW",
+      requestBody: { values: updatedValues },
+    });
+
+    return NextResponse.json({ id: matchId, ...body });
+  } catch (error) {
+    console.error("PUT error:", error);
+    return NextResponse.json({ error: "Failed to update" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("session")?.value;
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { searchParams } = new URL(request.url);
+    const matchId = searchParams.get("id");
+
+    if (!matchId) {
+      return NextResponse.json({ error: "Match ID is required" }, { status: 400 });
+    }
+
+    const sheets = await getGoogleSheetsClient();
+
+    const readResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID!,
+      range: `${SHEET_NAME}!A:Q`,
+    });
+
+    const rows = readResponse.data.values || [];
+    let rowIndex = -1;
+
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i][0] === matchId) {
+        rowIndex = i;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return NextResponse.json({ error: "Match not found" }, { status: 404 });
+    }
+
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: SHEET_ID!,
+      range: `${SHEET_NAME}!A${rowIndex + 1}:Q${rowIndex + 1}`,
+    });
+
+    return NextResponse.json({ success: true, id: matchId });
+  } catch (error) {
+    console.error("DELETE error:", error);
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
 }

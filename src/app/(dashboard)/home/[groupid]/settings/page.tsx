@@ -10,16 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Copy, 
-  Check, 
-  Users, 
-  Shield, 
-  Link as LinkIcon, 
-  Edit3, 
-  Trash2, 
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { MatchForm } from "@/components/match-form";
+import {
+  Copy,
+  Check,
+  Users,
+  Shield,
+  Link as LinkIcon,
+  Edit3,
+  Trash2,
   LogOut,
-  ChevronRight,
   X
 } from "lucide-react";
 import type { Match } from "@/types/match";
@@ -33,14 +35,17 @@ export default function SettingsPage() {
 
   const [copied, setCopied] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [isMatchesLoading, setIsMatchesLoading] = useState(true); // Added loading state
   const [uniquePlayersCount, setUniquePlayersCount] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingMemberName, setEditingMemberName] = useState("");
   const [memberEditError, setMemberEditError] = useState<string | null>(null);
   const [savingMemberId, setSavingMemberId] = useState<string | null>(null);
   const [publicScoresError, setPublicScoresError] = useState<string | null>(null);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [isSavingPublicScores, setIsSavingPublicScores] = useState(false);
-  
+
   const [userSession, setUserSession] = useState<{ userId: string; name?: string; email?: string } | null>(null);
 
   const profile = useQuery(api.users.getProfile, userSession?.userId ? { workosId: userSession.userId } : "skip");
@@ -51,18 +56,20 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchSession = async () => {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-            const data = await res.json();
-            setUserSession(data);
-        } else {
-            router.push("/login");
-        }
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUserSession(data);
+        setIsAuthenticated(true)
+      } else {
+        router.push("/login");
+      }
     };
     fetchSession();
 
     const fetchMatches = async () => {
       if (!groupId) return;
+      setIsMatchesLoading(true);
       try {
         const res = await fetch(`/api/analytics?groupId=${groupId}`);
         if (res.ok) {
@@ -76,11 +83,53 @@ export default function SettingsPage() {
             setUniquePlayersCount(players.size);
           }
         }
-      } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error("Failed to fetch matches:", e);
+      } finally {
+        setIsMatchesLoading(false);
+      }
     };
     fetchMatches();
   }, [groupId, router]);
+  const { toast } = useToast();
 
+  const handleDeleteMatch = async (matchId: string) => {
+    if (!confirm("Are you sure you want to delete this match?")) return;
+
+    try {
+      const res = await fetch(`/api/matches?id=${matchId}`, { method: "DELETE" });
+      if (res.ok) {
+        setMatches(matches.filter((m) => m.id !== matchId));
+        toast({ title: "Success", description: "Match deleted successfully." });
+      } else {
+        throw new Error("Failed to delete");
+      }
+    } catch {
+      toast({ title: "Error", description: "Could not delete match.", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateMatch = async (updatedData: any) => {
+    if (!editingMatch) return;
+
+    try {
+      const res = await fetch("/api/matches", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...updatedData, id: editingMatch.id }),
+      });
+
+      if (res.ok) {
+        setMatches(matches.map(m => m.id === editingMatch.id ? { ...m, ...updatedData } : m));
+        setEditingMatch(null);
+        toast({ title: "Success", description: "Match updated successfully." });
+      } else {
+        throw new Error("Failed to update");
+      }
+    } catch {
+      toast({ title: "Error", description: "Could not update match.", variant: "destructive" });
+    }
+  };
   const handleCopy = () => {
     const inviteLink = `${window.location.origin}/invite/${group?.inviteCode}`;
     navigator.clipboard.writeText(inviteLink);
@@ -136,7 +185,6 @@ export default function SettingsPage() {
   const isAdmin = profile?._id?.toString() === group?.adminId?.toString();
   const inviteLink = group ? `${window.location.origin}/invite/${group.inviteCode}` : "";
   const publicScoresEnabled = Boolean(group?.isPublic);
-
   const handlePublicScoresChange = async (checked: boolean) => {
     if (!isAdmin || !userSession?.userId || !group?._id) return;
 
@@ -161,9 +209,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-background font-sans overflow-x-hidden">
       <Navbar title="Settings" />
-
       <main className="max-w-4xl mx-auto w-full px-4 md:px-6 py-6 md:py-10 space-y-8 md:space-y-12">
-        
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-balance">Club Settings</h1>
@@ -210,14 +256,14 @@ export default function SettingsPage() {
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="relative flex-1 w-full">
                   <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-60 shrink-0" />
-                  <Input 
-                    readOnly 
-                    value={inviteLink} 
-                    className="pl-9 h-10 bg-background border-border/50 rounded-xl text-sm focus-visible:ring-1 focus-visible:ring-primary shadow-sm" 
+                  <Input
+                    readOnly
+                    value={inviteLink}
+                    className="pl-9 h-10 py-1 bg-background border-border/50 rounded-xl text-sm focus-visible:ring-1 focus-visible:ring-primary shadow-sm"
                   />
                 </div>
-                <Button 
-                  onClick={handleCopy} 
+                <Button
+                  onClick={handleCopy}
                   variant={copied ? "secondary" : "default"}
                   className={cn(
                     "rounded-xl h-10 px-5 text-sm font-medium transition-colors active:scale-[0.96] w-full sm:w-auto shrink-0 shadow-sm",
@@ -348,7 +394,7 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {isAdmin && (
+          {isAuthenticated && isAdmin && (
             <Card className="rounded-2xl border-border/50 bg-card shadow-sm">
               <CardHeader>
                 <CardTitle className="text-base text-balance">Match Management</CardTitle>
@@ -356,37 +402,49 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <div className="flex flex-col border border-border/50 rounded-xl bg-background overflow-hidden">
-                  {matches.slice(0, 5).map((match) => (
-                    <div key={match.id} className="flex items-center justify-between p-4 border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest tabular-nums">
-                          {new Date(match.createdAt).toLocaleDateString()}
-                        </p>
-                        <div className="text-sm font-medium text-foreground/90">
-                          {match.team1.players.map(p => p.name).join(" & ")} vs {match.team2.players.map(p => p.name).join(" & ")}
+
+                  {isMatchesLoading ? (
+                    <div className="p-10 flex flex-col items-center justify-center space-y-4">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <p className="text-sm font-medium text-muted-foreground">Loading matches...</p>
+                    </div>
+                  ) : matches.length === 0 ? (
+                    <div className="p-10 text-center space-y-2">
+                      <p className="text-sm font-medium text-foreground/80">No matches recorded yet</p>
+                    </div>
+                  ) : (
+                    <>
+                      {matches.slice(0, 5).map((match) => (
+                        <div key={match.id} className="flex items-center justify-between p-4 border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest tabular-nums">
+                              {new Date(match.createdAt).toLocaleDateString()}
+                            </p>
+                            <div className="text-sm font-medium text-foreground/90">
+                              {match.team1.players.map(p => p.name).join(" & ")} vs {match.team2.players.map(p => p.name).join(" & ")}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary transition-transform"
+                              onClick={() => setEditingMatch(match)}
+                            >
+                              <Edit3 className="h-4 w-4 shrink-0" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-[var(--destructive)] transition-transform"
+                              onClick={() => handleDeleteMatch(match.id)}
+                            >
+                              <Trash2 className="h-4 w-4 shrink-0" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary active:scale-[0.96] transition-transform">
-                          <Edit3 className="h-4 w-4 shrink-0" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-[var(--destructive)] active:scale-[0.96] transition-transform">
-                          <Trash2 className="h-4 w-4 shrink-0" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {matches.length > 5 && (
-                    <div className="p-2 bg-muted/10">
-                      <Button variant="ghost" className="w-full rounded-lg h-9 text-xs font-medium text-muted-foreground hover:text-primary transition-colors active:scale-[0.96]">
-                        View all records <ChevronRight className="w-3 h-3 ml-1 shrink-0" />
-                      </Button>
-                    </div>
-                  )}
-                  {matches.length === 0 && (
-                    <div className="p-8 text-center text-sm text-muted-foreground">
-                      No matches recorded yet.
-                    </div>
+                      ))}
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -401,8 +459,8 @@ export default function SettingsPage() {
                   Logged in as <span className="text-foreground/80 font-medium">{userSession?.email}</span>
                 </p>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full sm:w-auto border-[var(--destructive)] text-[var(--destructive)] hover:bg-[var(--destructive)] hover:text-[var(--destructive-foreground)] rounded-xl h-10 px-6 text-sm font-medium transition-colors active:scale-[0.96] shadow-none shrink-0"
                 onClick={handleLogout}
               >
@@ -414,6 +472,22 @@ export default function SettingsPage() {
         </div>
       </main>
 
+      <Dialog open={!!editingMatch} onOpenChange={(open) => !open && setEditingMatch(null)}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden rounded-3xl border border-border/50 shadow-2xl">
+
+          <div className="p-6">
+            {editingMatch && (
+              <MatchForm
+                initialData={editingMatch}
+                onCancel={() => setEditingMatch(null)}
+                onSubmit={async (data) => {
+                  await handleUpdateMatch(data);
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       <footer className="bg-background w-full pb-8 pt-8">
         <div className="max-w-5xl mx-auto px-6 flex flex-col items-center">
           <div className="w-20 h-px bg-border/60 mb-8" />

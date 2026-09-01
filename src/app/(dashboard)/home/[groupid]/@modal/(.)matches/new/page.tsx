@@ -11,7 +11,7 @@ interface PageProps {
 }
 
 export default async function InterceptedNewMatchPage({ params }: PageProps) {
-  const { groupid } = await params;
+  await params;
   const cookieStore = await cookies();
   const token = cookieStore.get("session")?.value;
 

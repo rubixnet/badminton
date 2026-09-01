@@ -32,7 +32,6 @@ export default function AdminPage() {
     if (auth === "true") {
       setIsAuthenticated(true);
 
-      // Try loading from cache first
       const stored = localStorage.getItem("badminton_matches");
       let loadedFromCache = false;
       if (stored) {
@@ -57,7 +56,7 @@ export default function AdminPage() {
   const fetchMatches = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
-      const res = await fetch("/api/matches?limit=100"); // Fetch more for admin
+      const res = await fetch("/api/matches?limit=100"); 
       if (res.ok) {
         const data = await res.json();
         const newMatches = data.matches || [];
@@ -94,7 +93,7 @@ export default function AdminPage() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Something went wrong",
@@ -103,12 +102,6 @@ export default function AdminPage() {
     } finally {
       setVerifying(false);
     }
-  };
-
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem("admin_auth");
-    setCode("");
   };
 
   const handleDelete = async (id: string) => {
@@ -124,7 +117,7 @@ export default function AdminPage() {
       } else {
         throw new Error("Failed to delete");
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to delete match",

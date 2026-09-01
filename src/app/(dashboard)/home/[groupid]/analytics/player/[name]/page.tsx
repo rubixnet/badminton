@@ -30,7 +30,6 @@ import {
 } from "recharts";
 import { MatchCalendar } from "@/components/match-calendar";
 import { StatRadar } from "@/components/stat-cross";
-import { useColorMode } from "@/components/color-mode-provider";
 import {
   ArrowLeft,
   TrendingUp,

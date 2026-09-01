@@ -68,7 +68,7 @@ export const getInviteInfo = query({
           if (inviter) {
             inviterName = inviter.name;
           }
-        } catch (e) {
+        } catch {
         }
       }
 

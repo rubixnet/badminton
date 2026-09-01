@@ -22,7 +22,6 @@ export default async function Page({ params }: PageProps) {
         if (token) {
             redirect('/api/auth/logout?reason=group_not_found');
         }
-
         redirect('/login?error=group_not_found');
     }
 
@@ -36,7 +35,7 @@ export default async function Page({ params }: PageProps) {
             if (userProfile?.groupId?.toString() === groupid) {
                 profile = userProfile;
             }
-        } catch (err) {
+        } catch {
             console.error('[AUTH] Invalid session token');
         }
     }

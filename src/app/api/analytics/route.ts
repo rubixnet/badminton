@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         }
 
         await jwtVerify(token, JWT_SECRET);
-      } catch (e) {
+      } catch {
         return NextResponse.json({ error: "Invalid session" }, { status: 401 });
       }
     }

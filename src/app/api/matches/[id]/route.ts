@@ -31,7 +31,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
 
     return NextResponse.json({ success: true });
-  } catch (e) { return NextResponse.json({ error: "Delete failed" }, { status: 500 }); }
+  } catch { return NextResponse.json({ error: "Delete failed" }, { status: 500 }); }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -69,5 +69,5 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     return NextResponse.json({ success: true });
-  } catch (e) { return NextResponse.json({ error: "Update failed" }, { status: 500 }); }
+  } catch { return NextResponse.json({ error: "Update failed" }, { status: 500 }); }
 }

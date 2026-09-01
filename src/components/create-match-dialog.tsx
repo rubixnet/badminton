@@ -3,8 +3,6 @@
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
-    DialogTitle,
 } from '@/components/ui/dialog'
 import { MatchForm } from '@/components/match-form'
 import type { Match } from '@/types/match'

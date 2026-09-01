@@ -27,7 +27,7 @@ export function mapStandardRowToMatch(row: any): Match | null {
             userId: row[15],
             userName: row[16],
         } as Match;
-    } catch (e) { return null; }
+    } catch { return null; }
 }
 
 export function mapGoogleVisualizationRowToMatch(row: any): Match | null {
@@ -58,5 +58,5 @@ export function mapGoogleVisualizationRowToMatch(row: any): Match | null {
             userId: cellsData[15]?.v,
             userName: cellsData[16]?.v,
         } as Match;
-    } catch (e) { return null; }
+    } catch { return null; }
 }

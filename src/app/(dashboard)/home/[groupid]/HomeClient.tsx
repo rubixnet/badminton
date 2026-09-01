@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { MatchList } from "@/components/match-list";
 import { CreateMatchDialog } from "@/components/create-match-dialog";
@@ -11,7 +11,7 @@ import { ArrowUpRight } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Match } from "@/types/match";
-import type { Doc, Id } from "../../../../../convex/_generated/dataModel";
+import type { Id } from "../../../../../convex/_generated/dataModel";
 
 interface HomeClientProps {
   user: {
@@ -126,7 +126,11 @@ export default function HomeClient({ user, group }: HomeClientProps) {
       return;
     }
 
-    isMobile ? router.push(`/home/${group._id}/matches/new`) : setIsOpen(true);
+    if (isMobile) {
+      router.push(`/home/${group._id}/matches/new`);
+    } else {
+      setIsOpen(true);
+    }
   };
   const canCreateMatch = Boolean(user);
 

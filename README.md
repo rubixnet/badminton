@@ -29,6 +29,16 @@ This application was initially built as a personal tool. A lot of weekend matche
 
 - todo list 
 
-add colors, make the homepage a bit better and detailed! 
-- making the plus work // done! 
-- making sure that one team wins here! no tie! : ) 
+
+- making sure that one team wins here! no tie! : )  .5 
+- check first if founder / admin or not and then show match management. .5
+user.role ? "admin" - match management load, load nhi kraych. 
+preload nhi kraych 
+- (check if the user is admin or not first) editing scores should work! 2
+
+- add colors to chart, make the homepage a bit better and detailed! 5.5
+- setting option to change color of chart, during onboarding let the user choose a color for the chart. 
+
+
+- tour and onboarding! 2 
+- adding popover with player names as list as person add players name! .5 
