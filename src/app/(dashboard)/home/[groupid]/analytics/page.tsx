@@ -2221,7 +2221,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center gap-2 w-full md:w-auto">
               {/* Chart Colors Picker */}
               <Popover>
-                <PopoverTrigger asChild>
+                <PopoverTrigger >
                   <Button
                     variant="outline"
                     size="icon"
@@ -2346,7 +2346,7 @@ export default function AnalyticsPage() {
                   }
                 }}
               >
-                <PopoverTrigger asChild>
+                <PopoverTrigger >
                   <Button
                     variant="outline"
                     className="w-full md:w-60 justify-between"

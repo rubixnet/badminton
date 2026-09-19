@@ -480,7 +480,7 @@ export function Navbar({ title, onCreateMatch, isAuthenticated }: NavbarProps) {
               <nav className="flex items-center gap-1 md:gap-2 lg:gap-4 h-full">
                 {showTourBtn && (
                   <Popover open={isHelpPopoverOpen} onOpenChange={setIsHelpPopoverOpen}>
-                    <PopoverTrigger asChild>
+                    <PopoverTrigger >
                       <Button
                         variant="ghost"
                         size="icon"
@@ -540,7 +540,7 @@ export function Navbar({ title, onCreateMatch, isAuthenticated }: NavbarProps) {
 
                 {!isMobile && (
                   <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                    <PopoverTrigger asChild>
+                    <PopoverTrigger >
                       <button
                         id="tour-profiles-desktop"
                         type="button"
@@ -613,7 +613,7 @@ export function Navbar({ title, onCreateMatch, isAuthenticated }: NavbarProps) {
             )}
 
             <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-              <PopoverTrigger asChild>
+              <PopoverTrigger >
                 <button id="tour-profiles-mobile" type="button" className="flex flex-col items-center p-2 outline-none">
                   <Users
                     className={cn(

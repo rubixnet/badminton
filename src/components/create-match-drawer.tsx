@@ -42,7 +42,7 @@ export function CreateMatchDrawer({
                 editor.
               </DrawerDescription>
             </div>
-            <DrawerClose asChild>
+            <DrawerClose >
               <Button
                 type="button"
                 variant="ghost"
