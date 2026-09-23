@@ -27,7 +27,7 @@ import { useTheme } from 'next-themes'
 
 const fadeUp = {
     hidden: { opacity: 0, y: 18 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
 }
 
 const staggerContainer = {
@@ -40,7 +40,7 @@ const staggerContainer = {
 
 const popoverVariant = {
     hidden: { opacity: 0, y: 10, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 25 } },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 300, damping: 25 } },
     exit: { opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.2 } }
 }
 
