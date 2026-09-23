@@ -1,7 +1,5 @@
 # Badminton Tracker
 
-Note: this readme is written with hel p of ai last minute! 
-
 Stop losing scores in group chats.
 
 Badminton Tracker is a fast, zero-clutter workspace designed for your weekend matches. Built to solve the problem of undocumented games and endless debates over who is actually the best player, this tool allows you to track scores, view win rates, and keep your rivalries recorded permanently. It is fully responsive, optimized for dark mode, and engineered to be used courtside between sets.
