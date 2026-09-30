@@ -1,3 +1,4 @@
+"use client"
 import { fetchQuery } from "convex/nextjs";
 import { api } from "../../../../convex/_generated/api";
 import { buttonVariants } from "@/components/ui/button";
