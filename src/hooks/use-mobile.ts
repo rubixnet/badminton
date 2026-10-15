@@ -1,36 +1,31 @@
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
+const MOBILE_QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
 
-function getIsMobile() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return window.innerWidth < MOBILE_BREAKPOINT;
+/**
+ * `useSyncExternalStore` gives the viewport value a stable server snapshot, so
+ * the first client render matches the server HTML and React swaps in the real
+ * width right after hydration. Seeding `useState` with `window.innerWidth`
+ * instead would branch render output on a browser-only global and produce a
+ * hydration mismatch on every mobile visit.
+ */
+function subscribe(onStoreChange: () => void) {
+  const mediaQuery = window.matchMedia(MOBILE_QUERY);
+  mediaQuery.addEventListener("change", onStoreChange);
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
 }
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState(getIsMobile);
+function getSnapshot(): boolean {
+  return window.matchMedia(MOBILE_QUERY).matches;
+}
 
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia(
-      `(max-width: ${MOBILE_BREAKPOINT - 1}px)`,
-    );
+function getServerSnapshot(): boolean {
+  return false;
+}
 
-    const updateIsMobile = () => {
-      setIsMobile(getIsMobile());
-    };
-
-    updateIsMobile();
-    mediaQuery.addEventListener("change", updateIsMobile);
-
-    return () => {
-      mediaQuery.removeEventListener("change", updateIsMobile);
-    };
-  }, []);
-
-  return isMobile;
+export function useIsMobile(): boolean {
+  return React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 export { useIsMobile as useMobile };

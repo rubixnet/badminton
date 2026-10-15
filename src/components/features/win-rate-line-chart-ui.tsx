@@ -17,8 +17,8 @@ const CustomLineTooltip = ({ active, payload, label }: any) => {
             <div className="bg-background border border-border/50 rounded-lg p-3 shadow-lg text-sm min-w-[140px]">
                 <p className="font-semibold text-foreground border-b border-border/50 pb-2 mb-2">{label}</p>
                 <div className="space-y-2">
-                    {payload.map((entry: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between gap-4">
+                    {payload.map((entry: any) => (
+                        <div key={entry.name} className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
                                 <span className="text-xs text-muted-foreground">{entry.name}</span>

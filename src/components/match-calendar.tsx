@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import { cn, formatFullDateLabel, formatMonthLabel } from "@/lib/utils";
 
 interface MatchCalendarProps {
   data: { date: string; count: number }[];
@@ -63,7 +63,7 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
     const months: { name: string; colStart: number }[] = [];
     weeks.forEach((week, weekIndex) => {
       week.forEach((day) => {
-        const month = day.date.toLocaleDateString("en-US", { month: "short" });
+        const month = formatMonthLabel(day.dateStr);
         const prevMonth =
           months.length > 0 ? months[months.length - 1].name : "";
         if (month !== prevMonth) {
@@ -94,15 +94,6 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
       }, 50);
     }
   }, [calendarData.weeks.length]);
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
 
   return (
     <div className={cn("w-full flex flex-col items-center", className)}>
@@ -137,9 +128,9 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
 
                 <div className="flex gap-[3px]">
                   <div className="flex flex-col gap-[3px] text-[10px] font-bold text-muted-foreground w-7 shrink-0 select-none">
-                    {["", "Mon", "", "Wed", "", "Fri", ""].map((day, index) => (
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                       <div
-                        key={index}
+                        key={day}
                         className="h-3 flex items-center justify-end pr-2 leading-none"
                       >
                         {day}
@@ -164,23 +155,25 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
                                 : undefined
                             }
                           >
-                            <TooltipTrigger >
+                            <TooltipTrigger
+                              aria-label={`${day.count} ${day.count === 1 ? "match" : "matches"} on ${formatFullDateLabel(day.dateStr)}`}
+                              onClick={
+                                isMobile
+                                  ? () =>
+                                      setOpenTooltip(
+                                        openTooltip === `${weekIndex}-${dayIndex}`
+                                          ? null
+                                          : `${weekIndex}-${dayIndex}`,
+                                      )
+                                  : undefined
+                              }
+                            >
                               <div
                                 className={cn(
                                   "w-3 h-3 rounded-[3px] cursor-crosshair transition-all duration-300",
                                   getColorClass(day.count),
                                   day.count > 0 && "hover:ring-1 hover:ring-primary/50 hover:scale-125 hover:z-10 relative z-0"
                                 )}
-                                onClick={
-                                  isMobile
-                                    ? () =>
-                                        setOpenTooltip(
-                                          openTooltip === `${weekIndex}-${dayIndex}`
-                                            ? null
-                                            : `${weekIndex}-${dayIndex}`,
-                                        )
-                                    : undefined
-                                }
                               />
                             </TooltipTrigger>
                             
@@ -189,7 +182,7 @@ export function MatchCalendar({ data, className = "" }: MatchCalendarProps) {
                                   side="top"
                                   className="text-xs bg-background/95 backdrop-blur-md text-foreground border border-border/50 shadow-xl px-3 py-2 rounded-lg"
                                 >
-                                  <p className="font-bold">{formatDate(day.dateStr)}</p>
+                                  <p className="font-bold">{formatFullDateLabel(day.dateStr)}</p>
                                   <p className="text-muted-foreground tabular-nums mt-0.5 font-medium">
                                     <span className="text-foreground">{day.count}</span> match{day.count !== 1 ? "es" : ""}
                                   </p>

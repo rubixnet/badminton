@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { m } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Plus, X, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { formSettingsKey, useFormSettings } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 import type { Match } from "@/types/match";
 
 const BONUS_PREFERENCE_STORAGE_KEY = "badminton:bonus-enabled";
@@ -79,18 +82,26 @@ function PlayerAutocomplete({
         <div className="absolute z-[100] w-full mt-1 bg-background border border-border rounded-md shadow-md max-h-48 overflow-y-auto">
           {filteredPlayers.length > 0 ? (
             filteredPlayers.map((player) => (
-              <div
+              <button
+                type="button"
                 key={player}
-                className="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
+                className="block w-full text-left px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
                 onMouseDown={(e) => {
                   // Use onMouseDown to trigger BEFORE the input's onBlur event fires
                   e.preventDefault(); 
                   onChange(player);
                   setIsOpen(false);
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onChange(player);
+                    setIsOpen(false);
+                  }
+                }}
               >
                 {player}
-              </div>
+              </button>
             ))
           ) : (
             <div className="px-3 py-3 text-sm text-muted-foreground text-center italic">
@@ -103,6 +114,245 @@ function PlayerAutocomplete({
   );
 }
 // ----------------------------------
+
+/**
+ * One labelled player input plus its optional bonus box.
+/** The bonus input itself, so animated and static call sites share it. */
+function BonusInput({
+  id,
+  value,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="w-24">
+      <Label htmlFor={id} className="font-semibold text-[13px]">
+        Bonus
+      </Label>
+      <Input
+        id={id}
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="0"
+        className="mt-1 focus-visible:ring-0"
+      />
+    </div>
+  );
+}
+
+/**
+ * One labelled player input plus its bonus box.
+ *
+ * The team grid renders this three times (P1, P2-top, P2-expanded); each copy
+ * differs only in ids and whether the bonus animates open, so the markup lives
+ * here once instead of three near-identical blocks.
+ *
+ * `animateBonus` drives the reveal. It is a real layout change - the player
+ * field has to reflow and the input must not be squashed by a scale - so the
+ * geometry comes from `className` and Motion's `layout` prop projects the
+ * before/after with a transform rather than animating `width`.
+ */
+function PlayerField({
+  id,
+  label,
+  value,
+  onChange,
+  players,
+  required,
+  bonus,
+  animateBonus,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  players: string[];
+  required?: boolean;
+  bonus: {
+    id: string;
+    value: string;
+    onChange: (v: string) => void;
+    /** Whether the reveal animates; the expanded row uses a plain column. */
+    visible: boolean;
+    transition: object;
+  };
+  animateBonus: boolean;
+}) {
+  const input = (
+    <BonusInput
+      id={bonus.id}
+      value={bonus.value}
+      onChange={bonus.onChange}
+    />
+  );
+
+  return (
+    <div className="flex items-end min-w-0">
+      <div className="flex-1 min-w-0 relative">
+        <Label htmlFor={id} className="font-semibold text-[13px]">
+          {label}
+        </Label>
+        <PlayerAutocomplete
+          id={id}
+          value={value}
+          onChange={onChange}
+          placeholder="Enter name"
+          required={required}
+          className="mt-1 focus-visible:ring-0"
+          players={players}
+        />
+      </div>
+
+      {animateBonus ? (
+        <m.div
+          layout="position"
+          initial={false}
+          animate={{ opacity: bonus.visible ? 1 : 0 }}
+          transition={bonus.transition}
+          className={cn(
+            "shrink-0 overflow-hidden",
+            bonus.visible ? "w-24 ml-2" : "w-0 ml-0",
+          )}
+        >
+          {input}
+        </m.div>
+      ) : (
+        <div className="shrink-0 overflow-hidden w-24 ml-2">{input}</div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Player 2's top-row cell.
+ *
+ * Same inputs as the collapsible row, but this cell fades and blurs out when the
+ * form switches to its compact layout instead of collapsing.
+ */
+function FadedPlayerTwo({
+  teamId,
+  compact,
+  animated,
+  value,
+  onChange,
+  players,
+  bonusValue,
+  onBonusChange,
+  bonusVisible,
+  bonusTransition,
+}: {
+  teamId: string;
+  compact: boolean;
+  animated: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  players: string[];
+  bonusValue: string;
+  onBonusChange: (v: string) => void;
+  bonusVisible: boolean;
+  bonusTransition: object;
+}) {
+  return (
+    <div
+      className="flex items-end min-w-0"
+      style={{
+        transition: animated
+          ? "opacity 0.55s " + CSS_EASE + ", filter 0.55s " + CSS_EASE
+          : "none",
+        opacity: compact ? 0 : 1,
+        filter: compact ? "blur(8px)" : "blur(0px)",
+      }}
+    >
+      <PlayerField
+        id={`${teamId}-p2-top`}
+        label="Player 2"
+        value={value}
+        onChange={onChange}
+        players={players}
+        bonus={{
+          id: `${teamId}-p2-bonus-top`,
+          value: bonusValue,
+          onChange: onBonusChange,
+          visible: bonusVisible,
+          transition: bonusTransition,
+        }}
+        animateBonus
+      />
+    </div>
+  );
+}
+
+/**
+ * Player 2's second row.
+ *
+ * It is the same pair of inputs as the top row, only revealed by collapsing the
+ * grid track instead of fading in - so the reveal is its own component rather
+ * than another conditional block inside `TeamSection`.
+ */
+function CollapsiblePlayerTwo({
+  teamId,
+  compact,
+  animated,
+  value,
+  onChange,
+  players,
+  bonusValue,
+  onBonusChange,
+}: {
+  teamId: string;
+  compact: boolean;
+  animated: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  players: string[];
+  bonusValue: string;
+  onBonusChange: (v: string) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateRows: compact ? "1fr" : "0fr",
+        transition: animated ? ROW_Template : "none",
+      }}
+    >
+      {/* Toggle overflow to prevent clipping when fully expanded */}
+      <div className={compact ? "overflow-visible" : "overflow-hidden"}>
+        <m.div
+          initial={false}
+          animate={{
+            opacity: compact ? 1 : 0,
+            filter: compact ? "blur(0px)" : "blur(8px)",
+          }}
+          transition={
+            animated ? { ...fadeT, delay: compact ? 0.28 : 0 } : { duration: 0 }
+          }
+          className="flex items-end pt-3"
+        >
+          <PlayerField
+            id={`${teamId}-p2`}
+            label="Player 2"
+            value={value}
+            onChange={onChange}
+            players={players}
+            bonus={{
+              id: `${teamId}-p2-bonus`,
+              value: bonusValue,
+              onChange: onBonusChange,
+              visible: true,
+              transition: fadeT,
+            }}
+            animateBonus={false}
+          />
+        </m.div>
+      </div>
+    </div>
+  );
+}
 
 function TeamSection({
   teamId,
@@ -139,6 +389,9 @@ function TeamSection({
   onScore: (v: string) => void;
   p1Required?: boolean;
 }) {
+  const bonusTransition = animated ? fadeT : { duration: 0 };
+  const p2Visible = bonusEnabled && !compact;
+
   return (
     <div className="flex flex-col">
       <div
@@ -149,146 +402,47 @@ function TeamSection({
           transition: animated ? COL_Template : "none",
         }}
       >
-        <div className="flex items-end min-w-0">
-          <div className="flex-1 min-w-0 relative">
-            <Label htmlFor={`${teamId}-p1`} className="font-semibold text-[13px]">
-              Player 1
-            </Label>
-            <PlayerAutocomplete
-              id={`${teamId}-p1`}
-              value={p1}
-              onChange={onP1}
-              placeholder="Enter name"
-              required={p1Required}
-              className="mt-1 focus-visible:ring-0"
-              players={playerList}
-            />
-          </div>
-          <motion.div
-            initial={false}
-            animate={{
-              width: bonusEnabled ? 96 : 0,
-              marginLeft: bonusEnabled ? 8 : 0,
-              opacity: bonusEnabled ? 1 : 0,
-            }}
-            transition={animated ? fadeT : { duration: 0 }}
-            className="shrink-0 overflow-hidden"
-          >
-            <div className="w-24">
-              <Label htmlFor={`${teamId}-p1-bonus`} className="font-semibold text-[13px]">
-                Bonus
-              </Label>
-              <Input
-                id={`${teamId}-p1-bonus`}
-                type="number"
-                value={p1Bonus}
-                onChange={(e) => onP1Bonus(e.target.value)}
-                placeholder="0"
-                className="mt-1 focus-visible:ring-0"
-              />
-            </div>
-          </motion.div>
-        </div>
-
-        <div
-          className="flex items-end min-w-0"
-          style={{
-            transition: animated
-              ? "opacity 0.55s " + CSS_EASE + ", filter 0.55s " + CSS_EASE
-              : "none",
-            opacity: compact ? 0 : 1,
-            filter: compact ? "blur(8px)" : "blur(0px)",
+        <PlayerField
+          id={`${teamId}-p1`}
+          label="Player 1"
+          value={p1}
+          onChange={onP1}
+          players={playerList}
+          required={p1Required}
+          bonus={{
+            id: `${teamId}-p1-bonus`,
+            value: p1Bonus,
+            onChange: onP1Bonus,
+            visible: bonusEnabled,
+            transition: bonusTransition,
           }}
-        >
-          <div className="flex-1 min-w-0 relative">
-            <Label htmlFor={`${teamId}-p2-top`} className="font-semibold text-[13px]">
-              Player 2
-            </Label>
-            <PlayerAutocomplete
-              id={`${teamId}-p2-top`}
-              value={p2}
-              onChange={onP2}
-              placeholder="Enter name"
-              className="mt-1 focus-visible:ring-0"
-              players={playerList}
-            />
-          </div>
-          <motion.div
-            initial={false}
-            animate={{
-              width: bonusEnabled && !compact ? 96 : 0,
-              marginLeft: bonusEnabled && !compact ? 8 : 0,
-              opacity: bonusEnabled && !compact ? 1 : 0,
-            }}
-            transition={animated ? fadeT : { duration: 0 }}
-            className="shrink-0 overflow-hidden"
-          >
-            <div className="w-24">
-              <Label htmlFor={`${teamId}-p2-bonus-top`} className="font-semibold text-[13px]">
-                Bonus
-              </Label>
-              <Input
-                id={`${teamId}-p2-bonus-top`}
-                type="number"
-                value={p2Bonus}
-                onChange={(e) => onP2Bonus(e.target.value)}
-                placeholder="0"
-                className="mt-1 focus-visible:ring-0"
-              />
-            </div>
-          </motion.div>
-        </div>
+          animateBonus
+        />
+
+        <FadedPlayerTwo
+          teamId={teamId}
+          compact={compact}
+          animated={animated}
+          value={p2}
+          onChange={onP2}
+          players={playerList}
+          bonusValue={p2Bonus}
+          onBonusChange={onP2Bonus}
+          bonusVisible={p2Visible}
+          bonusTransition={bonusTransition}
+        />
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateRows: compact ? "1fr" : "0fr",
-          transition: animated ? ROW_Template : "none",
-        }}
-      >
-        {/* Toggle overflow to prevent clipping when fully expanded */}
-        <div className={compact ? "overflow-visible" : "overflow-hidden"}>
-          <motion.div
-            initial={false}
-            animate={{
-              opacity: compact ? 1 : 0,
-              filter: compact ? "blur(0px)" : "blur(8px)",
-            }}
-            transition={
-              animated ? { ...fadeT, delay: compact ? 0.28 : 0 } : { duration: 0 }
-            }
-            className="flex items-end pt-3"
-          >
-            <div className="flex-1 min-w-0 relative">
-              <Label htmlFor={`${teamId}-p2`} className="font-semibold text-[13px]">
-                Player 2
-              </Label>
-              <PlayerAutocomplete
-                id={`${teamId}-p2`}
-                value={p2}
-                onChange={onP2}
-                placeholder="Enter name"
-                className="mt-1 focus-visible:ring-0"
-                players={playerList}
-              />
-            </div>
-            <div className="w-24 shrink-0 ml-2">
-              <Label htmlFor={`${teamId}-p2-bonus`} className="font-semibold text-[13px]">
-                Bonus
-              </Label>
-              <Input
-                id={`${teamId}-p2-bonus`}
-                type="number"
-                value={p2Bonus}
-                onChange={(e) => onP2Bonus(e.target.value)}
-                placeholder="0"
-                className="mt-1 focus-visible:ring-0"
-              />
-            </div>
-          </motion.div>
-        </div>
-      </div>
+      <CollapsiblePlayerTwo
+        teamId={teamId}
+        compact={compact}
+        animated={animated}
+        value={p2}
+        onChange={onP2}
+        players={playerList}
+        bonusValue={p2Bonus}
+        onBonusChange={onP2Bonus}
+      />
 
       <div className="mt-3 w-[calc(50%-6px)]">
         <Label htmlFor={`${teamId}-score`} className="font-semibold text-[13px]">
@@ -318,8 +472,164 @@ interface MatchFormProps {
   onCancel?: () => void;
 }
 
+type CheckpointDraft = {
+  id: string;
+  team1Score: string;
+  team2Score: string;
+  note: string;
+};
+
+type CheckpointField = "team1Score" | "team2Score" | "note";
+
+/**
+ * Add/remove/update over the checkpoint drafts.
+ *
+ * Keeping this in its own hook means `MatchForm` only holds the list, not the
+ * three mutators that go with it.
+ */
+function useCheckpoints(initial?: Match["checkpoints"]) {
+  const [checkpoints, setCheckpoints] = useState<CheckpointDraft[]>(() =>
+    (initial ?? []).map((cp) => ({
+      id: `checkpoint-${crypto.randomUUID()}`,
+      team1Score: cp.team1Score.toString(),
+      team2Score: cp.team2Score.toString(),
+      note: cp.note ?? "",
+    })),
+  );
+
+  const addCheckpoint = useCallback(() => {
+    setCheckpoints((prev) => [
+      ...prev,
+      {
+        id: `checkpoint-${crypto.randomUUID()}`,
+        team1Score: "",
+        team2Score: "",
+        note: "",
+      },
+    ]);
+  }, []);
+
+  const removeCheckpoint = useCallback((index: number) => {
+    setCheckpoints((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const updateCheckpoint = useCallback(
+    (index: number, field: CheckpointField, value: string) => {
+      setCheckpoints((prev) =>
+        prev.map((cp, i) => (i === index ? { ...cp, [field]: value } : cp)),
+      );
+    },
+    [],
+  );
+
+  return { checkpoints, addCheckpoint, removeCheckpoint, updateCheckpoint };
+}
+
+/** The checkpoint list editor: add/remove buttons plus one card per checkpoint. */
+function CheckpointEditor({
+  checkpoints,
+  onAdd,
+  onRemove,
+  onChange,
+}: {
+  checkpoints: CheckpointDraft[];
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onChange: (index: number, field: CheckpointField, value: string) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-lg uppercase tracking-wide">
+          Checkpoints{" "}
+        </h3>
+        <Button type="button" variant="outline" size="sm" onClick={onAdd}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add
+        </Button>
+      </div>
+
+      {checkpoints.map((checkpoint, index) => (
+        <div key={checkpoint.id} className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold uppercase">
+              Checkpoint {index + 1}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={`Remove checkpoint ${index + 1}`}
+              className="h-8 w-8"
+              onClick={() => onRemove(index)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label
+                htmlFor={`cp${checkpoint.id}-team1`}
+                className="font-semibold"
+              >
+                Team 1 Score
+              </Label>
+              <Input
+                id={`cp${checkpoint.id}-team1`}
+                type="number"
+                min="0"
+                value={checkpoint.team1Score}
+                onChange={(e) =>
+                  onChange(index, "team1Score", e.target.value)
+                }
+                placeholder="0"
+                className="mt-1 focus-visible:ring-0"
+              />
+            </div>
+            <div>
+              <Label
+                htmlFor={`cp${checkpoint.id}-team2`}
+                className="font-semibold"
+              >
+                Team 2 Score
+              </Label>
+              <Input
+                id={`cp${checkpoint.id}-team2`}
+                type="number"
+                min="0"
+                value={checkpoint.team2Score}
+                onChange={(e) =>
+                  onChange(index, "team2Score", e.target.value)
+                }
+                placeholder="0"
+                className="mt-1 focus-visible:ring-0"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor={`cp${checkpoint.id}-note`} className="font-semibold">
+              Note
+            </Label>
+            <Textarea
+              id={`cp${checkpoint.id}-note`}
+              value={checkpoint.note}
+              onChange={(e) => onChange(index, "note", e.target.value)}
+              placeholder="e.g., 'End of first set'"
+              rows={2}
+              className="mt-1"
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const isSmallScreen = useMediaQuery("max-sm");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bonusEnabled, setBonusEnabled] = useState<boolean>(() => {
@@ -342,9 +652,12 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
   const [team2Player2Bonus, setTeam2Player2Bonus] = useState("");
   const [team2Score, setTeam2Score] = useState("");
 
-  const [checkpoints, setCheckpoints] = useState<
-    Array<{ team1Score: string; team2Score: string; note: string }>
-  >([]);
+  const {
+    checkpoints,
+    addCheckpoint,
+    removeCheckpoint,
+    updateCheckpoint,
+  } = useCheckpoints(initialData?.checkpoints);
 
   const compactBonusLayout = isSmallScreen && bonusEnabled;
 
@@ -369,46 +682,14 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
     }
   }, []);
 
+  const settingsQuery = useFormSettings({ enabled: !initialData });
+  const remoteBonusEnabled = settingsQuery.data?.bonusEnabled;
+
   useEffect(() => {
-    if (initialData) {
-      return;
-    }
-
-    const storedPreference = localStorage.getItem(BONUS_PREFERENCE_STORAGE_KEY);
-    if (storedPreference !== null) {
-      setBonusEnabled(storedPreference === "true");
-    }
-
-    let cancelled = false;
-
-    const loadBonusPreference = async () => {
-      try {
-        const response = await fetch("/api/settings", { cache: "no-store" });
-
-        if (!response.ok) {
-          return;
-        }
-
-        const settings = (await response.json()) as { bonusEnabled?: boolean };
-
-        if (!cancelled && typeof settings.bonusEnabled === "boolean") {
-          setBonusEnabled(settings.bonusEnabled);
-          localStorage.setItem(
-            BONUS_PREFERENCE_STORAGE_KEY,
-            String(settings.bonusEnabled)
-          );
-        }
-      } catch (error) {
-        console.error("Failed to load bonus preference:", error);
-      }
-    };
-
-    void loadBonusPreference();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [initialData]);
+    if (typeof remoteBonusEnabled !== "boolean") return;
+    setBonusEnabled(remoteBonusEnabled);
+    localStorage.setItem(BONUS_PREFERENCE_STORAGE_KEY, String(remoteBonusEnabled));
+  }, [remoteBonusEnabled]);
 
   useEffect(() => {
     if (initialData) {
@@ -440,43 +721,14 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
       ].some((points) => points && points > 0);
       setBonusEnabled(hasBonus);
 
-      if (initialData.checkpoints) {
-        setCheckpoints(
-          initialData.checkpoints.map((cp) => ({
-            team1Score: cp.team1Score.toString(),
-            team2Score: cp.team2Score.toString(),
-            note: cp.note ?? "",
-          }))
-        );
-      }
     }
   }, [initialData]);
-
-  const addCheckpoint = () => {
-    setCheckpoints([
-      ...checkpoints,
-      { team1Score: "", team2Score: "", note: "" },
-    ]);
-  };
-
-  const removeCheckpoint = (index: number) => {
-    setCheckpoints(checkpoints.filter((_, i) => i !== index));
-  };
-
-  const updateCheckpoint = (
-    index: number,
-    field: "team1Score" | "team2Score" | "note",
-    value: string
-  ) => {
-    const updated = [...checkpoints];
-    updated[index][field] = value;
-    setCheckpoints(updated);
-  };
 
   const handleBonusToggle = (enabled: boolean) => {
     if (!animated) setAnimated(true);
     setBonusEnabled(enabled);
     localStorage.setItem(BONUS_PREFERENCE_STORAGE_KEY, String(enabled));
+    queryClient.setQueryData(formSettingsKey, { bonusEnabled: enabled });
 
     void fetch("/api/settings", {
       method: "POST",
@@ -627,90 +879,12 @@ export function MatchForm({ onSubmit, initialData, onCancel }: MatchFormProps) {
         p1Required
       />
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg uppercase tracking-wide">
-            Checkpoints{" "}
-          </h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addCheckpoint}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add
-          </Button>
-        </div>
-
-        {checkpoints.map((checkpoint, index) => (
-          <div key={index} className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold uppercase">
-                Checkpoint {index + 1}
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => removeCheckpoint(index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor={`cp${index}-team1`} className="font-semibold">
-                  Team 1 Score
-                </Label>
-                <Input
-                  id={`cp${index}-team1`}
-                  type="number"
-                  min="0"
-                  value={checkpoint.team1Score}
-                  onChange={(e) =>
-                    updateCheckpoint(index, "team1Score", e.target.value)
-                  }
-                  placeholder="0"
-                  className="mt-1 focus-visible:ring-0"
-                />
-              </div>
-              <div>
-                <Label htmlFor={`cp${index}-team2`} className="font-semibold">
-                  Team 2 Score
-                </Label>
-                <Input
-                  id={`cp${index}-team2`}
-                  type="number"
-                  min="0"
-                  value={checkpoint.team2Score}
-                  onChange={(e) =>
-                    updateCheckpoint(index, "team2Score", e.target.value)
-                  }
-                  placeholder="0"
-                  className="mt-1 focus-visible:ring-0"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor={`cp${index}-note`} className="font-semibold">
-                Note
-              </Label>
-              <Textarea
-                id={`cp${index}-note`}
-                value={checkpoint.note}
-                onChange={(e) =>
-                  updateCheckpoint(index, "note", e.target.value)
-                }
-                placeholder="e.g., 'End of first set'"
-                rows={2}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+      <CheckpointEditor
+        checkpoints={checkpoints}
+        onAdd={addCheckpoint}
+        onRemove={removeCheckpoint}
+        onChange={updateCheckpoint}
+      />
 
       <div className="flex gap-2">
         {onCancel && (

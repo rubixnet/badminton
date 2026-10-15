@@ -48,9 +48,10 @@ function ChartContainer({
 }) {
   const uniqueId = React.useId()
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
+  const chartContextValue = React.useMemo(() => ({ config }), [config])
 
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={chartContextValue}>
       <div
         data-slot="chart"
         data-chart={chartId}
@@ -128,6 +129,11 @@ function ChartTooltipContent({
   }) {
   const { config } = useChart()
 
+  // The hook below has to stay above the early return: returning first would
+  // skip it on inactive renders and break the hook order for the component.
+  const items = payload ?? []
+  const nestLabel = items.length === 1 && indicator !== "dot"
+
   const tooltipLabel = React.useMemo(() => {
     if (hideLabel || !payload?.length) {
       return null
@@ -167,8 +173,6 @@ function ChartTooltipContent({
   if (!active || !payload?.length) {
     return null
   }
-
-  const nestLabel = payload.length === 1 && indicator !== "dot"
 
   return (
     <div

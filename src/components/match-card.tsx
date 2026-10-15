@@ -32,7 +32,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
   return (
     <Card
-      className="rounded-none overflow-hidden border border-border cursor-pointer transition-all hover:bg-muted/5 shadow-none w-full bg-background/10"
+      className="rounded-none overflow-hidden border border-border cursor-pointer transition-colors hover:bg-muted/5 shadow-none w-full bg-background/10"
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="p-4 md:p-6">
@@ -102,9 +102,9 @@ export function MatchCard({ match }: MatchCardProps) {
                   Checkpoints
                 </h4>
                 <div className="space-y-2">
-                  {match.checkpoints?.map((checkpoint, idx) => (
+                  {match.checkpoints?.map((checkpoint) => (
                     <div
-                      key={idx}
+                      key={checkpoint.timestamp}
                       className="flex items-center justify-between text-sm border border-border rounded-md p-3 bg-muted/30"
                     >
                       <div className="flex gap-4">

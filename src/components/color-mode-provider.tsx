@@ -5,6 +5,8 @@ import {
   useContext,
   useState,
   useEffect,
+  useMemo,
+  useCallback,
   ReactNode,
 } from "react";
 
@@ -93,17 +95,18 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
     };
   }, [colorMode, accentColor]);
 
-  const setColorMode = (mode: ColorMode) => {
+  const setColorMode = useCallback((mode: ColorMode) => {
     setColorModeState(mode);
     localStorage.setItem(STORAGE_KEY_MODE, mode);
-  };
+  }, []);
 
-  const setAccentColor = (color: string) => {
+  const setAccentColor = useCallback((color: string) => {
     setAccentColorState(color);
     localStorage.setItem(STORAGE_KEY_ACCENT, color);
-  };
+  }, []);
 
-  const getPlayerColor = (index: number, isDarkMode: boolean): string => {
+  const getPlayerColor = useCallback(
+    (index: number, isDarkMode: boolean): string => {
     const maxPlayers = 10;
     const clampedIndex = Math.min(index, maxPlayers - 1);
 
@@ -141,18 +144,23 @@ export function ColorModeProvider({ children }: { children: ReactNode }) {
           ? `hsl(0, 0%, ${90 - clampedIndex * 6}%)` // 90% to 36%
           : `hsl(0, 0%, ${10 + clampedIndex * 7}%)`; // 10% to 73%
     }
-  };
+    },
+    [colorMode, accentColor],
+  );
+
+  const colorModeContextValue = useMemo(
+    () => ({
+      colorMode,
+      accentColor,
+      setColorMode,
+      setAccentColor,
+      getPlayerColor,
+    }),
+    [colorMode, accentColor, setColorMode, setAccentColor, getPlayerColor],
+  );
 
   return (
-    <ColorModeContext.Provider
-      value={{
-        colorMode,
-        accentColor,
-        setColorMode,
-        setAccentColor,
-        getPlayerColor,
-      }}
-    >
+    <ColorModeContext.Provider value={colorModeContextValue}>
       {children}
     </ColorModeContext.Provider>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,57 +18,46 @@ import { Match } from "@/types/match";
 import { AdminMatchTable } from "@/components/admin-match-table";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const adminMatchesKey = ["admin-matches"] as const;
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [code, setCode] = useState("");
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
 
   const router = useRouter();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    const auth = localStorage.getItem("admin_auth");
-    if (auth === "true") {
+    if (localStorage.getItem("admin_auth") === "true") {
       setIsAuthenticated(true);
-
-      const stored = localStorage.getItem("badminton_matches");
-      let loadedFromCache = false;
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setMatches(parsed);
-            setLoading(false);
-            loadedFromCache = true;
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      fetchMatches(loadedFromCache);
-    } else {
-      setLoading(false);
     }
   }, []);
 
-  const fetchMatches = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    try {
-      const res = await fetch("/api/matches?limit=100"); 
-      if (res.ok) {
-        const data = await res.json();
-        const newMatches = data.matches || [];
-        setMatches(newMatches);
-        localStorage.setItem("badminton_matches", JSON.stringify(newMatches));
+  const matchesQuery = useQuery({
+    queryKey: adminMatchesKey,
+    queryFn: async () => {
+      const res = await fetch("/api/matches?limit=100");
+      if (!res.ok) {
+        throw new Error(`Failed to load matches: ${res.status}`);
       }
-    } catch (error) {
-      console.error("Failed to fetch matches", error);
-    } finally {
-      if (!isBackground) setLoading(false);
-    }
+      const data = (await res.json()) as { matches?: Match[] };
+      const nextMatches = data.matches ?? [];
+      localStorage.setItem("badminton_matches", JSON.stringify(nextMatches));
+      return nextMatches;
+    },
+    enabled: isAuthenticated,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+
+  const matches = matchesQuery.data ?? [];
+  const loading = isAuthenticated && matchesQuery.isPending;
+
+  const saveMatches = (nextMatches: Match[]) => {
+    queryClient.setQueryData<Match[]>(adminMatchesKey, nextMatches);
+    localStorage.setItem("badminton_matches", JSON.stringify(nextMatches));
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -84,7 +74,6 @@ export default function AdminPage() {
       if (res.ok) {
         setIsAuthenticated(true);
         localStorage.setItem("admin_auth", "true");
-        fetchMatches();
         toast({ title: "Success", description: "Logged in successfully" });
       } else {
         toast({
@@ -110,9 +99,7 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/matches?id=${id}`, { method: "DELETE" });
       if (res.ok) {
-        const newMatches = matches.filter((m) => m.id !== id);
-        setMatches(newMatches);
-        localStorage.setItem("badminton_matches", JSON.stringify(newMatches));
+        saveMatches(matches.filter((m) => m.id !== id));
         toast({ title: "Success", description: "Match deleted" });
       } else {
         throw new Error("Failed to delete");
@@ -135,11 +122,9 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        const newMatches = matches.map((m) =>
-          m.id === updatedMatch.id ? updatedMatch : m,
+        saveMatches(
+          matches.map((m) => (m.id === updatedMatch.id ? updatedMatch : m)),
         );
-        setMatches(newMatches);
-        localStorage.setItem("badminton_matches", JSON.stringify(newMatches));
       } else {
         throw new Error("Failed to update");
       }
@@ -158,9 +143,7 @@ export default function AdminPage() {
 
       if (res.ok) {
         const newMatch = await res.json();
-        const newMatches = [newMatch, ...matches];
-        setMatches(newMatches);
-        localStorage.setItem("badminton_matches", JSON.stringify(newMatches));
+        saveMatches([newMatch, ...matches]);
       } else {
         throw new Error("Failed to create");
       }

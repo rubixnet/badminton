@@ -38,13 +38,15 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   const liveGroup = useQuery(api.group.getGroupById, { groupId: group._id });
   const signalRefresh = useMutation(api.group.triggerRefresh);
 
-  const fetchMatches = useCallback(async (pageNum: number, isBackground = false) => {
-    if (!isBackground) setIsLoading(true);
+  /** Fetch one page and merge it into state. Never touches the loading flag. */
+  const loadPage = useCallback(
+    async (pageNum: number) => {
+      try {
+        const response = await fetch(
+          `/api/matches?groupId=${group._id}&page=${pageNum}&limit=20`,
+        );
+        if (!response.ok) return;
 
-    try {
-      const response = await fetch(`/api/matches?groupId=${group._id}&page=${pageNum}&limit=20`);
-
-      if (response.ok) {
         const data = await response.json();
 
         if (pageNum === 1) {
@@ -52,20 +54,38 @@ export default function HomeClient({ user, group }: HomeClientProps) {
         } else {
           setMatches((prev) => {
             const existingIds = new Set(prev.map((m) => m.id));
-            const newMatches = data.matches.filter((m: Match) => !existingIds.has(m.id));
+            const newMatches = data.matches.filter(
+              (m: Match) => !existingIds.has(m.id),
+            );
             return [...prev, ...newMatches];
           });
         }
 
         setHasMore(data.page < data.totalPages);
         setPage(pageNum);
+      } catch (error) {
+        console.error("Failed to fetch matches:", error);
       }
-    } catch (error) {
-      console.error("Failed to fetch matches:", error);
-    } finally {
-      if (!isBackground) setIsLoading(false);
+    },
+    [group._id],
+  );
+
+  const fetchMatches = useCallback(async (pageNum: number, isBackground = false) => {
+    // A background refresh must not touch the spinner, so the foreground path
+    // owns the flag: it is raised and lowered around the same `try`, and the
+    // lowering lives in `finally` so a throw can never strand it on.
+    if (isBackground) {
+      await loadPage(pageNum);
+      return;
     }
-  }, [group._id]);
+
+    setIsLoading(true);
+    try {
+      await loadPage(pageNum);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadPage]);
 
   useEffect(() => {
     fetchMatches(1);

@@ -42,9 +42,15 @@ export async function GET(request: NextRequest) {
     const tq = encodeURIComponent(`SELECT * WHERE O = '${groupId}' ORDER BY B DESC`);
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tq=${tq}&sheet=${SHEET_NAME}`;
 
-    const res = await fetch(url, { cache: 'no-store' }); 
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) {
+      return NextResponse.json(
+        { matches: [], error: "Upstream query engine returned an error" },
+        { status: 502 }
+      );
+    }
     const text = await res.text();
-    
+
     if (text.trim().startsWith("<!DOCTYPE")) {
       return NextResponse.json(
         { matches: [], error: "Privacy settings blocking query engine" },

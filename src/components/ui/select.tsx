@@ -232,7 +232,6 @@ export {
   Select,
   SelectTrigger,
   SelectButton,
-  selectTriggerVariants,
   SelectValue,
   SelectPopup,
   SelectPopup as SelectContent,

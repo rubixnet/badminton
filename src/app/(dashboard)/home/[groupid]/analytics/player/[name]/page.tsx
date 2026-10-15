@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar"; // Using Navbar instead of Header
@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import type { Match } from "@/types/match";
 import { computePlayerWinRateTotals, computeWinRatePercent } from "@/lib/win-rate";
+import { useGroupMatches } from "@/lib/queries";
 
 type MatchFilter = "all" | "doubles" | "singles";
 
@@ -369,82 +370,36 @@ export default function PlayerProfilePage() {
   const params = useParams();
   const router = useRouter();
   const groupId = params.groupid as string; // FIX 1: Extract the groupId
-  const playerName = decodeURIComponent(params.name as string);
+  // `decodeURIComponent` throws `URIError` on a malformed percent-escape, and a
+  // hand-edited URL is exactly that case, so fall back to the raw segment.
+  const rawPlayerName = String(params.name ?? "");
+  const playerName = (() => {
+    try {
+      return decodeURIComponent(rawPlayerName);
+    } catch {
+      return rawPlayerName;
+    }
+  })();
 
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [allPlayers, setAllPlayers] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const matchesQuery = useGroupMatches(groupId);
+  const matches = useMemo(
+    () => matchesQuery.data?.matches ?? [],
+    [matchesQuery.data],
+  );
+  const strictMode = matchesQuery.data?.strictMode ?? false;
+  const loading = matchesQuery.isPending;
   const [matchFilter, setMatchFilter] = useState<MatchFilter>("all");
   const [comparePlayer, setComparePlayer] = useState<string>("");
   const [showAllRecent, setShowAllRecent] = useState(false);
-  const [strictMode, setStrictMode] = useState(false);
 
-  useEffect(() => {
-    if (!groupId) return;
-
-    const fetchData = async () => {
-      try {
-        // FIX 2: Group specific caching
-        const cacheKey = `badminton_analytics_matches_${groupId}`;
-        const stored = localStorage.getItem(cacheKey);
-        let loadedFromCache = false;
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            if (parsed.matches) {
-              setMatches(parsed.matches);
-              setStrictMode(parsed.strictMode || false);
-              const players = new Set<string>();
-              parsed.matches.forEach((m: Match) => {
-                m.team1.players.forEach(
-                  (p) => p.name && players.add(p.name.trim()),
-                );
-                m.team2.players.forEach(
-                  (p) => p.name && players.add(p.name.trim()),
-                );
-              });
-              setAllPlayers(Array.from(players).sort());
-              setLoading(false);
-              loadedFromCache = true;
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-
-        if (!loadedFromCache) {
-          const res = await fetch(`/api/analytics?groupId=${groupId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.matches) {
-              setMatches(data.matches);
-              setStrictMode(data.strictMode || false);
-              localStorage.setItem(
-                cacheKey,
-                JSON.stringify({ matches: data.matches, strictMode: data.strictMode }),
-              );
-
-              const players = new Set<string>();
-              data.matches.forEach((m: Match) => {
-                m.team1.players.forEach(
-                  (p) => p.name && players.add(p.name.trim()),
-                );
-                m.team2.players.forEach(
-                  (p) => p.name && players.add(p.name.trim()),
-                );
-              });
-              setAllPlayers(Array.from(players).sort());
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch matches:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [groupId]);
+  const allPlayers = useMemo(() => {
+    const players = new Set<string>();
+    matches.forEach((m) => {
+      m.team1.players.forEach((p) => p.name && players.add(p.name.trim()));
+      m.team2.players.forEach((p) => p.name && players.add(p.name.trim()));
+    });
+    return Array.from(players).sort();
+  }, [matches]);
 
   const matchCounts = useMemo(() => {
     const playerMatches = matches.filter(
@@ -677,7 +632,7 @@ export default function PlayerProfilePage() {
                       {displayedResults.length > 0 ? (
                         displayedResults.map((result, i) => (
                           <span
-                            key={i}
+                            key={`${stats.recentResults.length - displayedResults.length + i}-${result}`}
                             className={`inline-flex items-center justify-center w-8 h-8 text-sm font-medium border ${result === "W"
                                 ? "bg-foreground text-background"
                                 : "bg-background text-foreground"
@@ -1083,7 +1038,7 @@ export default function PlayerProfilePage() {
                               <Bar dataKey="bonus" radius={4}>
                                 {stats.dailyBonusPoints.map((entry, index) => (
                                   <Cell
-                                    key={`cell-${index}`}
+                                    key={entry.date}
                                     fill={
                                       entry.bonus >= 0
                                         ? "hsl(142, 70%, 45%)"

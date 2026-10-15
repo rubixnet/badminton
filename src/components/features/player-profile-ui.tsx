@@ -12,7 +12,13 @@ export function PlayerProfileUI({ className }: { className?: string }) {
         left: { label: "Games", value: 64, max: 64 },
     }
 
-    const recentResults = ['W', 'L', 'W', 'W', 'W'];
+    const recentResults = [
+      { id: "recent-1", result: "W" },
+      { id: "recent-2", result: "L" },
+      { id: "recent-3", result: "W" },
+      { id: "recent-4", result: "W" },
+      { id: "recent-5", result: "W" },
+    ];
 
     return (
         <div className={cn("w-full max-w-sm mx-auto flex flex-col items-center bg-background border border-border/50 rounded-xl p-5 sm:p-6 shadow-sm z-10", className)}>
@@ -43,9 +49,9 @@ export function PlayerProfileUI({ className }: { className?: string }) {
                     <span className="text-[10px] text-muted-foreground">(oldest → newest)</span>
                 </div>
                 <div className="flex gap-2 w-full justify-start">
-                    {recentResults.map((result, i) => (
+                    {recentResults.map(({ id, result }) => (
                         <div
-                            key={i}
+                            key={id}
                             className={cn(
                                 "w-6 h-6 sm:w-8 sm:h-8 rounded flex items-center justify-center text-[10px] sm:text-xs font-bold border",
                                 result === 'W'

@@ -14,6 +14,16 @@ export async function middleware(request: NextRequest) {
 
   const isPublicAuthPage = pathname === '/' || pathname === '/login' || pathname.startsWith('/invite');
 
+  // `/login?logout=...` is where the guards and the logout button land. Doing
+  // the cookie delete here keeps session termination off any GET route handler,
+  // which could otherwise be triggered by a prefetcher, preview unfurl, or
+  // crawler rather than by a real user gesture.
+  if (isAuthRecovery && pathname === '/login') {
+    const response = NextResponse.next();
+    response.cookies.delete('session');
+    return response;
+  }
+
   if (!token) return NextResponse.next();
 
   try {

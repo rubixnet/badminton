@@ -94,11 +94,10 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
     };
   }, []);
 
-  useEffect(() => {
-    if (!isMobile) {
-      router.replace("/");
-    }
-  }, [isMobile, router]);
+  // No viewport-based redirect here: the guard below already returns `null` on
+  // desktop, and the only entry points to this screen are the mobile dashboard
+  // routes that already redirect server-side. A `router.replace` in an effect
+  // would just re-navigate an already-rendering tree.
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && open) {

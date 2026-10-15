@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useStoredPreference } from "@/lib/stored-preferences";
 import { Trophy, ChevronDown } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,20 +31,21 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const todayKey = useMemo(() => new Date().toISOString().split("T")[0], []);
-  const [revealed, setRevealed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const storedDate = localStorage.getItem("badminton_potd_revealed_date");
-    return storedDate === todayKey;
-  });
+  const [revealedOn, setRevealedOn] = useStoredPreference(
+    "badminton_potd_revealed_date",
+    "",
+  );
+  const revealed = revealedOn === todayKey;
 
-  // Persist reveal state
+  // Launch confetti when the dialog opens after a reveal.
+  //
+  // Every timer and animation frame is registered by this effect and released by
+  // its cleanup, so closing the dialog mid-burst cancels the pending work
+  // instead of firing it into a component that is already unmounted.
   useEffect(() => {
-    if (revealed) {
-      localStorage.setItem("badminton_potd_revealed_date", todayKey);
-    }
-  }, [revealed, todayKey]);
+    if (!dialogOpen || !revealed) return;
 
-  const launchConfetti = useCallback(() => {
+    let raf = 0;
     const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
     const starColors = ["#FFE400", "#FFBD00", "#E89400", "#FFCA6C", "#FDFFB8"];
 
@@ -69,7 +71,7 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
         colors: colors,
         zIndex: 99999,
       });
-      requestAnimationFrame(frame);
+      raf = requestAnimationFrame(frame);
     };
     frame();
 
@@ -102,13 +104,13 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
     };
 
     // Multiple star bursts
-    setTimeout(shootStars, 0);
-    setTimeout(shootStars, 200);
-    setTimeout(shootStars, 400);
-    setTimeout(shootStars, 800);
+    const wave1 = setTimeout(shootStars, 0);
+    const wave2 = setTimeout(shootStars, 200);
+    const wave3 = setTimeout(shootStars, 400);
+    const wave4 = setTimeout(shootStars, 800);
 
     // Extra big center burst
-    setTimeout(() => {
+    const centerBurst = setTimeout(() => {
       confetti({
         particleCount: 150,
         spread: 100,
@@ -121,14 +123,17 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
         zIndex: 99999,
       });
     }, 300);
-  }, []);
 
-  // Launch confetti when dialog opens after reveal
-  useEffect(() => {
-    if (dialogOpen && revealed) {
-      launchConfetti();
-    }
-  }, [dialogOpen, revealed, launchConfetti]);
+
+    return () => {
+      clearTimeout(wave1);
+      clearTimeout(wave2);
+      clearTimeout(wave3);
+      clearTimeout(wave4);
+      clearTimeout(centerBurst);
+      cancelAnimationFrame(raf);
+    };
+  }, [dialogOpen, revealed]);
 
   const handleCardClick = () => {
     if (!revealed) {
@@ -139,7 +144,7 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
   };
 
   const handleConfirmReveal = () => {
-    setRevealed(true);
+    setRevealedOn(todayKey);
     setDialogOpen(true);
     setConfirmOpen(false);
   };
@@ -157,7 +162,7 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
               handleCardClick();
             }
           }}
-          className="bg-linear-to-r from-primary/10 via-background to-background border-primary/20 cursor-pointer hover:border-primary/50 transition-all group"
+          className="bg-linear-to-r from-primary/10 via-background to-background border-primary/20 cursor-pointer hover:border-primary/50 transition-colors group"
         >
           <CardContent className="p-6 flex items-center justify-between">
             <div className="flex items-center gap-4">

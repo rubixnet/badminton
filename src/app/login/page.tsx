@@ -1,15 +1,31 @@
 "use client";
 
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+const TOKEN_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * Invite and referral codes are opaque, server-issued tokens that end up in a
+ * privileged OAuth start request. Read them through this validator rather than
+ * off `searchParams` directly, so a crafted link cannot smuggle extra
+ * parameters (or a different URL) into the auth redirect.
+ */
+function readPrivilegedParam(
+  searchParams: ReadonlyURLSearchParams,
+  name: "invite" | "via",
+): string | null {
+  const raw = searchParams.get(name);
+  return raw && TOKEN_PATTERN.test(raw) ? raw : null;
+}
+
 function LoginContent() {
   const searchParams = useSearchParams();
-  
-  const invite = searchParams.get("invite");
-  const via = searchParams.get("via");
+
+  const invite = readPrivilegedParam(searchParams, "invite");
+  const via = readPrivilegedParam(searchParams, "via");
 
   const onGoogleLogin = () => {
     const authUrl = new URL("/api/auth/google", window.location.origin);
@@ -43,7 +59,7 @@ function LoginContent() {
               variant="outline"
               type="button"
               onClick={onGoogleLogin}
-              className="w-full rounded-xl border-border/50 bg-background hover:bg-muted/50 flex items-center justify-center gap-3 text-base font-medium shadow-none transition-all active:scale-[0.98]"
+              className="w-full rounded-xl border-border/50 bg-background hover:bg-muted/50 flex items-center justify-center gap-3 text-base font-medium shadow-none transition-[transform,background-color,color,border-color] active:scale-[0.98]"
             >
               <svg className="size-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>

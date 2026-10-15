@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tq=${tq}&sheet=${SHEET_NAME}`;
 
     const result = await fetch(url, { cache: "no-store" });
+    if (!result.ok) {
+      return NextResponse.json({ matches: [], error: "Upstream query engine returned an error" }, { status: 502 });
+    }
     const text = await result.text();
 
     if (text.trim().startsWith("<!DOCTYPE")) {

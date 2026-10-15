@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { buttonVariants, Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
+import { FooterLegalLinks } from '@/components/footer-legal-links'
+import { buttonVariants } from '@/components/ui/button-variants'
 import { useMemo, useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { m, AnimatePresence } from 'framer-motion'
+import { cn, formatDateLabel } from '@/lib/utils'
 import { Moon, Sun, Play, X, TrendingUp, Menu, ChevronRight, BarChart2, Zap, Shield, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -52,8 +54,8 @@ function ThemeToggle() {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="w-9 h-9 flex shrink-0 items-center justify-center rounded-md bg-transparent hover:bg-muted/50 transition-colors"
         >
-            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-muted-foreground" />
-            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-muted-foreground" />
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0 text-muted-foreground" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100 text-muted-foreground" />
             <span className="sr-only">Toggle theme</span>
         </button>
     )
@@ -86,14 +88,14 @@ function FeaturePopover() {
                 variant="outline"
                 size="lg"
                 onClick={() => setIsOpen(!isOpen)}
-                className="shadow-sm font-medium w-full sm:w-auto px-8 bg-transparent border-border/50 active:scale-[0.98] transition-all"
+                className="shadow-sm font-medium w-full sm:w-auto px-8 bg-transparent border-border/50 active:scale-[0.98] transition-[transform,background-color,color,border-color]"
             >
                 See how it works <ChevronRight className={cn("ml-2 h-4 w-4 transition-transform", isOpen && "rotate-90")} />
             </Button>
 
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
+                    <m.div
                         variants={popoverVariant}
                         initial="hidden"
                         animate="visible"
@@ -101,8 +103,8 @@ function FeaturePopover() {
                         className="absolute top-full left-1/2 sm:left-0 -translate-x-1/2 sm:translate-x-0 mt-3 w-[320px] bg-background border border-border/50 rounded-xl shadow-xl z-50 p-2"
                     >
                         <div className="grid grid-cols-1 gap-1">
-                            {features.map((feat, idx) => (
-                                <div key={idx} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-default">
+                            {features.map((feat) => (
+                                <div key={feat.title} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-default">
                                     <div className="p-2 rounded-md bg-muted text-foreground">
                                         <feat.icon className="w-4 h-4" />
                                     </div>
@@ -113,7 +115,7 @@ function FeaturePopover() {
                                 </div>
                             ))}
                         </div>
-                    </motion.div>
+                    </m.div>
                 )}
             </AnimatePresence>
         </div>
@@ -233,7 +235,7 @@ function ActivityHeatmap() {
                 week.push({
                     date: currentDate,
                     count: count,
-                    dateStr: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    dateStr: formatDateLabel(currentDate)
                 })
             }
             grid.push(week)
@@ -259,7 +261,7 @@ function ActivityHeatmap() {
                                 {week.map((day, dIdx) => (
                                     <Tooltip key={`${wIdx}-${dIdx}`}>
                                         <TooltipTrigger >
-                                            <motion.div
+                                            <m.div
                                                 initial={{ scale: 0 }}
                                                 whileInView={{ scale: 1 }}
                                                 viewport={{ once: true }}
@@ -301,7 +303,7 @@ function HeroVideoUI({ className }: { className?: string }) {
     const [isOpen, setIsOpen] = useState(false)
 
     return (
-        <motion.section
+        <m.section
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-80px" }}
@@ -309,9 +311,10 @@ function HeroVideoUI({ className }: { className?: string }) {
             transition={{ duration: 0.45, ease: "easeOut" }}
             className={cn("max-w-4xl mx-auto px-6 mt-8 mb-16 sm:mb-24", className)}
         >
-            <div
+            <button
+                type="button"
                 onClick={() => setIsOpen(true)}
-                className="relative w-full aspect-[21/9] sm:aspect-video bg-muted/10 border border-border/50 rounded-xl overflow-hidden group cursor-pointer shadow-sm"
+                className="relative block w-full text-left aspect-[21/9] sm:aspect-video bg-muted/10 border border-border/50 rounded-xl overflow-hidden group cursor-pointer shadow-sm"
             >
                 <img
                     src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=2000&auto=format&fit=crop"
@@ -336,18 +339,18 @@ function HeroVideoUI({ className }: { className?: string }) {
                         Watch the demo
                     </span>
                 </div>
-            </div>
+            </button>
 
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-sm p-4 sm:p-6"
                         onClick={() => setIsOpen(false)}
                     >
-                        <motion.div
+                        <m.div
                             initial={{ scale: 0.95 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0.95 }}
@@ -355,6 +358,8 @@ function HeroVideoUI({ className }: { className?: string }) {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
+                                type="button"
+                                aria-label="Close video"
                                 onClick={() => setIsOpen(false)}
                                 className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-black/70 transition-colors active:scale-[0.96]"
                             >
@@ -367,11 +372,11 @@ function HeroVideoUI({ className }: { className?: string }) {
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                             ></iframe>
-                        </motion.div>
-                    </motion.div>
+                        </m.div>
+                    </m.div>
                 )}
             </AnimatePresence>
-        </motion.section>
+        </m.section>
     )
 }
 
@@ -380,25 +385,25 @@ function InteractiveScoreUI({ className }: { className?: string }) {
     const [score2, setScore2] = useState(20)
 
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full flex gap-3 select-none", className)}
         >
-            <div
+            <button type="button"
                 onClick={() => setScore1(s => s < 30 ? s + 1 : s)}
                 className="flex-1 bg-background border border-border/50 rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-transform active:scale-[0.96] hover:border-foreground/30 min-h-[200px] shadow-sm"
             >
                 <span className="text-xs font-medium text-muted-foreground transition-colors uppercase tracking-widest">Tap to score</span>
                 <span className="text-6xl font-medium tracking-tighter text-foreground/90 tabular-nums">{score1}</span>
-            </div>
-            <div
+            </button>
+            <button type="button"
                 onClick={() => setScore2(s => s < 30 ? s + 1 : s)}
                 className="flex-1 bg-foreground border border-foreground rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-transform active:scale-[0.96] min-h-[200px] shadow-sm"
             >
                 <span className="text-xs font-medium text-background uppercase tracking-widest opacity-80">Match Point</span>
                 <span className="text-6xl font-medium tracking-tighter text-background tabular-nums">{score2}</span>
-            </div>
-        </motion.div>
+            </button>
+        </m.div>
     )
 }
 
@@ -408,8 +413,8 @@ const CustomLineTooltip = ({ active, payload, label }: any) => {
             <div className="bg-background border border-border/50 rounded-md p-3 shadow-sm text-sm min-w-[140px]">
                 <p className="font-semibold text-foreground border-b border-border/50 pb-2 mb-2">{label}</p>
                 <div className="space-y-2">
-                    {payload.map((entry: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between gap-4">
+                    {payload.map((entry: any) => (
+                        <div key={entry.name} className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
                                 <span className="text-xs text-muted-foreground">{entry.name}</span>
@@ -435,7 +440,7 @@ function WinRateLineChartUI({ className }: { className?: string }) {
     ]
 
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full bg-background border border-border/50 rounded-xl p-4 sm:p-6 shadow-sm h-[280px]", className)}
         >
@@ -464,7 +469,7 @@ function WinRateLineChartUI({ className }: { className?: string }) {
                     </LineChart>
                 </ResponsiveContainer>
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 
@@ -476,10 +481,16 @@ function PlayerProfileUI({ className }: { className?: string }) {
         left: { label: "Games", value: 64, max: 64 },
     }
 
-    const recentResults = ['W', 'L', 'W', 'W', 'W'];
+    const recentResults = [
+      { id: "recent-1", result: "W" },
+      { id: "recent-2", result: "L" },
+      { id: "recent-3", result: "W" },
+      { id: "recent-4", result: "W" },
+      { id: "recent-5", result: "W" },
+    ];
 
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full flex flex-col items-center bg-background border border-border/50 rounded-xl p-5 sm:p-8 shadow-sm z-10 min-h-[300px]", className)}
         >
@@ -509,9 +520,9 @@ function PlayerProfileUI({ className }: { className?: string }) {
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Recent Form</span>
                 </div>
                 <div className="flex gap-2 w-full justify-start">
-                    {recentResults.map((result, i) => (
+                    {recentResults.map(({ id, result }) => (
                         <div
-                            key={i}
+                            key={id}
                             className={cn(
                                 "w-7 h-7 rounded flex items-center justify-center text-xs font-bold border",
                                 result === 'W'
@@ -524,13 +535,13 @@ function PlayerProfileUI({ className }: { className?: string }) {
                     ))}
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 
 function HeadToHeadUI({ className }: { className?: string }) {
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full bg-background border border-border/50 rounded-xl p-6 sm:p-8 flex flex-col justify-center min-h-[300px] shadow-sm", className)}
         >
@@ -564,13 +575,13 @@ function HeadToHeadUI({ className }: { className?: string }) {
                     <span className="font-medium tabular-nums">Avg 18.2 pts</span>
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 
 function CheckpointsUI({ className }: { className?: string }) {
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full flex flex-col justify-center gap-4 bg-background border border-border/50 rounded-xl p-6 sm:p-8 shadow-sm min-h-[300px]", className)}
         >
@@ -582,13 +593,13 @@ function CheckpointsUI({ className }: { className?: string }) {
                 <span className="text-2xl font-black tabular-nums tracking-tighter">19 - 21</span>
                 <Badge className="bg-background text-foreground hover:bg-background border-none text-[10px] font-bold uppercase tracking-widest px-3 py-1 shadow-none rounded">Epic Comeback</Badge>
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 
 function FaultTrackerUI({ className }: { className?: string }) {
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full bg-background border border-border/50 rounded-xl p-6 sm:p-8 flex flex-col justify-center shadow-sm space-y-6 min-h-[300px]", className)}
         >
@@ -619,7 +630,7 @@ function FaultTrackerUI({ className }: { className?: string }) {
                     <span className="text-xs font-bold text-muted-foreground tabular-nums">-1 Net Fault</span>
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 
@@ -627,13 +638,14 @@ function VideoDialogUI({ className }: { className?: string }) {
     const [isOpen, setIsOpen] = useState(false)
 
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full min-h-[300px] flex items-center", className)}
         >
-            <div
+            <button
+                type="button"
                 onClick={() => setIsOpen(true)}
-                className="relative w-full aspect-video bg-muted/10 border border-border/50 rounded-xl overflow-hidden group cursor-pointer shadow-sm"
+                className="relative block w-full text-left aspect-video bg-muted/10 border border-border/50 rounded-xl overflow-hidden group cursor-pointer shadow-sm"
             >
                 <img
                     src="https://user-cdn.hackclub-assets.com/019de004-0b06-7b6a-bd86-7a0ff8751b38/Screenshot%202026-05-01%20at%2001.40.15.png"
@@ -658,18 +670,18 @@ function VideoDialogUI({ className }: { className?: string }) {
                         Watch Demo
                     </span>
                 </div>
-            </div>
+            </button>
 
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
                         onClick={() => setIsOpen(false)}
                     >
-                        <motion.div
+                        <m.div
                             initial={{ scale: 0.95 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0.95 }}
@@ -677,6 +689,8 @@ function VideoDialogUI({ className }: { className?: string }) {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
+                                type="button"
+                                aria-label="Close video"
                                 onClick={() => setIsOpen(false)}
                                 className="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-black/70 transition-colors active:scale-[0.96]"
                             >
@@ -685,17 +699,25 @@ function VideoDialogUI({ className }: { className?: string }) {
                             <video
                                 className="w-full h-full object-cover"
                                 controls
+                                muted
                                 autoPlay
                                 playsInline
                             >
                                 <source src="https://cdn.hackclub.com/019ddfe5-f0c1-75a4-9b98-472906bbd6e4/screen_recording_2026-05-01_at_01.06.45.mp4" type="video/mp4" />
+                                <track
+                                    kind="captions"
+                                    src="/captions/custom-modes-demo.vtt"
+                                    srcLang="en"
+                                    label="English"
+                                    default
+                                />
                                 Your browser does not support the video tag.
                             </video>
-                        </motion.div>
-                    </motion.div>
+                        </m.div>
+                    </m.div>
                 )}
             </AnimatePresence>
-        </motion.div>
+        </m.div>
     )
 }
 
@@ -703,7 +725,7 @@ function InviteUI({ className }: { className?: string }) {
     const router = useRouter()
 
     return (
-        <motion.div
+        <m.div
             whileHover={{ y: -4 }}
             className={cn("w-full space-y-6 p-6 sm:p-8 bg-background border border-border/50 rounded-xl shadow-sm min-h-[300px] flex flex-col justify-center", className)}
         >
@@ -731,10 +753,141 @@ function InviteUI({ className }: { className?: string }) {
                     ))}
                 </div>
             </div>
-        </motion.div>
+        </m.div>
     )
 }
 
+
+/**
+ * The landing page feature list.
+ *
+ * All eight rows share one layout - eyebrow, heading, body, demo - and differ
+ * only in copy, which side the demo sits on, and which component draws it.
+ * Describing them as data (rather than eight copied blocks) means adding a
+ * feature is one entry instead of a duplicated 18-line element.
+ */
+const FEATURES = [
+  {
+      icon: Zap,
+    eyebrow: "Zero Friction",
+    heading: "Manage scores instantly.",
+    body: "Log scores in seconds without fighting a messy interface. We built this to be fast on mobile so you can edit and manage scores between sets, not after you get home.",
+    flip: false,
+    Visual: InteractiveScoreUI,
+  },
+  {
+    eyebrow: "Momentum",
+    heading: "Checkpoints & Comebacks.",
+    body: "Don't just record the final result. Log mid-game checkpoints to capture the story of the match. Automatically tag \"Epic Comebacks\" or \"Downfalls\" to keep the banter alive.",
+    flip: true,
+    Visual: CheckpointsUI,
+  },
+  {
+      icon: Shield,
+    eyebrow: "Accountability",
+    heading: "The \"Fault\" Tracker.",
+    body: "Every point counts. Use Bonus and Deduction points to note who gave away easy points to the opponent or failed to defend a smash. Monitor player discipline trends.",
+    flip: false,
+    Visual: FaultTrackerUI,
+  },
+  {
+      icon: Users,
+    eyebrow: "Player Identity",
+    heading: "Detailed Player Profiles.",
+    body: "Every player gets a dedicated profile showcasing their radar stats, average points per match, recent form history, and active win streaks.",
+    flip: true,
+    Visual: PlayerProfileUI,
+  },
+  {
+    eyebrow: "Head to Head",
+    heading: "Know your nemesis.",
+    body: "Know head to head win and loss count against your friends. Track partner win rates, performance by day, and in-depth stats to see who your toughest matchups really are.",
+    flip: false,
+    Visual: HeadToHeadUI,
+  },
+  {
+      icon: BarChart2,
+    eyebrow: "Deep Stats",
+    heading: "Settle debates with hard data.",
+    body: "Access rich analytics including win rate trends, total matches played, and point differentials over time. Watch the graph evolve as you log more games.",
+    flip: true,
+    Visual: WinRateLineChartUI,
+  },
+  {
+    eyebrow: "Your Court, Your Rules",
+    heading: "Solo, Duo & Custom Modes.",
+    body: "Full support for 1v1 and 2v2 matchups. Add custom checkpoints and bonus points to track the specific house rules you and your friends actually play by.",
+    flip: false,
+    Visual: VideoDialogUI,
+  },
+  {
+    eyebrow: "Multiplayer",
+    heading: "Invite your friends instantly.",
+    body: "Badminton isn't played alone. Easily invite your group via a link, manage rosters, and let everyone view the leaderboards from their own devices.",
+    flip: true,
+    Visual: InviteUI,
+  },
+];
+
+type FeatureVisual = (props: { className?: string }) => React.JSX.Element;
+
+function FeatureRow({
+  eyebrow,
+  heading,
+  body,
+  flip,
+  Visual,
+  icon: Icon,
+}: {
+  eyebrow: string;
+  heading: string;
+  body: string;
+  flip: boolean;
+  Visual: FeatureVisual;
+  icon?: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <m.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      variants={fadeUp}
+      className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center"
+    >
+      <div className={cn("flex-1 space-y-4", flip ? "lg:order-2" : "lg:order-1")}>
+        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
+          {Icon && <Icon className="w-3 h-3" />}
+          {eyebrow}
+        </div>
+        <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">
+          {heading}
+        </h3>
+        <p className="text-muted-foreground leading-relaxed font-normal">{body}</p>
+      </div>
+      <div
+        className={cn(
+          "flex-[1.2] w-full flex justify-center",
+          flip ? "lg:justify-start lg:order-1" : "lg:justify-end lg:order-2",
+        )}
+      >
+        <Visual className="w-full max-w-lg" />
+      </div>
+    </m.div>
+  );
+}
+
+function FeaturesSection() {
+  return (
+    <section
+      id="features"
+      className="max-w-5xl mx-auto px-6 py-12 space-y-24 sm:space-y-32"
+    >
+      {FEATURES.map((feature) => (
+        <FeatureRow key={feature.heading} {...feature} />
+      ))}
+    </section>
+  );
+}
 
 export default function Home() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -755,13 +908,20 @@ export default function Home() {
                         </div>
                         <div className="flex items-center gap-1 pl-1">
                             <ThemeToggle />
-                            <Link href="/login" className={buttonVariants({ variant: "default", size: "sm", className: "shadow-sm font-medium ml-2 active:scale-[0.96] transition-transform rounded" })}>
+                            <Link
+                                href="/login"
+                                aria-label="Sign up, it is free"
+                                className={buttonVariants({ variant: "default", size: "sm", className: "shadow-sm font-medium ml-2 active:scale-[0.96] transition-transform rounded" })}
+                            >
                                 Try it free
                             </Link>
                         </div>
                     </div>
 
                     <button
+                        type="button"
+                        aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+                        aria-expanded={isMobileMenuOpen}
                         className="sm:hidden p-2 -mr-2 text-muted-foreground active:scale-[0.96] transition-transform"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                     >
@@ -771,11 +931,12 @@ export default function Home() {
 
                 <AnimatePresence>
                     {isMobileMenuOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="sm:hidden overflow-hidden bg-background border-b border-border/50 px-6 py-4 flex flex-col gap-4 shadow-lg"
+                        <m.div
+                            initial={{ opacity: 0, y: -12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -12 }}
+                            transition={fadeUp}
+                            className="sm:hidden overflow-hidden bg-background border-b border-border/50 px-6 py-4 flex flex-col gap-4 shadow-lg origin-top"
                         >
                             <Link href="#features" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium">Features</Link>
                             <Link href="#story" onClick={() => setIsMobileMenuOpen(false)} className="text-sm font-medium">Story</Link>
@@ -786,43 +947,43 @@ export default function Home() {
                             <Link href="/login" className={buttonVariants({ variant: "default", className: "w-full shadow-sm font-medium mt-2 rounded" })}>
                                 Try it free
                             </Link>
-                        </motion.div>
+                        </m.div>
                     )}
                 </AnimatePresence>
             </nav>
 
             <main className="flex-1">
-                <motion.section
+                <m.section
                     initial="hidden"
                     animate="visible"
                     variants={staggerContainer}
                     className="max-w-4xl mx-auto px-6 pt-32 pb-16 text-center"
                 >
                     <div className="space-y-6">
-                        <motion.div
+                        <m.div
                             variants={fadeUp}
                             className="inline-flex items-center justify-center px-3 py-1 rounded-md bg-muted border border-border mb-4 text-[10px] font-bold uppercase tracking-widest shadow-sm"
                         >
                             Now open for early access
-                        </motion.div>
-                        <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight leading-[1.1] text-foreground/90 text-balance mx-auto">
+                        </m.div>
+                        <m.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-6xl font-medium tracking-tight leading-[1.1] text-foreground/90 text-balance mx-auto">
                             Stop losing scores in group chats.
-                        </motion.h1>
-                        <motion.p variants={fadeUp} className="text-lg text-muted-foreground leading-relaxed font-normal text-balance mx-auto max-w-2xl">
+                        </m.h1>
+                        <m.p variants={fadeUp} className="text-lg text-muted-foreground leading-relaxed font-normal text-balance mx-auto max-w-2xl">
                             A fast, zero-clutter workspace for your weekend matches. Track scores, view win rates, and keep the rivalry recorded permanently. Fully responsive, dark mode ready, and built for the court.
-                        </motion.p>
-                        <motion.div variants={fadeUp} className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        </m.p>
+                        <m.div variants={fadeUp} className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
                             <Link href="/login" className={buttonVariants({ variant: "default", size: "lg", className: "shadow-sm font-medium w-full sm:w-auto px-8 active:scale-[0.98] transition-transform rounded" })}>
                                 Start Tracking Now
                             </Link>
                             <FeaturePopover />
-                        </motion.div>
+                        </m.div>
                     </div>
-                </motion.section>
+                </m.section>
 
                 <HeroVideoUI />
 
-                <motion.section
+                <m.section
                     initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp}
                     className="max-w-5xl mx-auto px-6 py-12 mb-16 sm:mb-24"
                 >
@@ -833,7 +994,7 @@ export default function Home() {
                     <div className="w-full flex justify-center border border-border/50 rounded-xl p-6 shadow-sm">
                         <ActivityHeatmap />
                     </div>
-                </motion.section>
+                </m.section>
 
                 <section className="max-w-4xl mx-auto px-6 mb-24">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -856,154 +1017,7 @@ export default function Home() {
                 </section>
 
 
-                <section id="features" className="max-w-5xl mx-auto px-6 py-12 space-y-24 sm:space-y-32">
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-1">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2"><Zap className="w-3 h-3" /> Zero Friction</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">Manage scores instantly.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Log scores in seconds without fighting a messy interface. We built this to be fast on mobile so you can edit and manage scores between sets, not after you get home.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-end lg:order-2">
-                            <InteractiveScoreUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-2">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Momentum</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">Checkpoints & Comebacks.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Don't just record the final result. Log mid-game checkpoints to capture the story of the match. Automatically tag "Epic Comebacks" or "Downfalls" to keep the banter alive.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-start lg:order-1">
-                            <CheckpointsUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-1">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2"><Shield className="w-3 h-3" /> Accountability</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">The "Fault" Tracker.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Every point counts. Use Bonus and Deduction points to note who gave away easy points to the opponent or failed to defend a smash. Monitor player discipline trends.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-end lg:order-2">
-                            <FaultTrackerUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-2">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2"><Users className="w-3 h-3" /> Player Identity</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">Detailed Player Profiles.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Every player gets a dedicated profile showcasing their radar stats, average points per match, recent form history, and active win streaks.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-start lg:order-1">
-                            <PlayerProfileUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-1">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Head to Head</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">Know your nemesis.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Know head to head win and loss count against your friends. Track partner win rates, performance by day, and in-depth stats to see who your toughest matchups really are.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-end lg:order-2">
-                            <HeadToHeadUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-2">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2"><BarChart2 className="w-3 h-3" /> Deep Stats</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">Settle debates with hard data.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Access rich analytics including win rate trends, total matches played, and point differentials over time. Watch the graph evolve as you log more games.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-start lg:order-1">
-                            <WinRateLineChartUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-1">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Your Court, Your Rules</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">Solo, Duo & Custom Modes.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Full support for 1v1 and 2v2 matchups. Add custom checkpoints and bonus points to track the specific house rules you and your friends actually play by.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-end lg:order-2">
-                            <VideoDialogUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} className="flex flex-col lg:flex-row gap-12 lg:gap-20 items-center">
-                        <div className="flex-1 space-y-4 lg:order-2">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Multiplayer</div>
-                            <h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground/90">Invite your friends instantly.</h3>
-                            <p className="text-muted-foreground leading-relaxed font-normal">
-                                Badminton isn't played alone. Easily invite your group via a link, manage rosters, and let everyone view the leaderboards from their own devices.
-                            </p>
-                        </div>
-                        <div className="flex-[1.2] w-full flex justify-center lg:justify-start lg:order-1">
-                            <InviteUI className="w-full max-w-lg" />
-                        </div>
-                    </motion.div>
-
-                </section>
-
-                <section className="py-24 bg-background border-t border-border/50">
-                    <div className="max-w-5xl mx-auto px-6">
-                        <div className="text-center space-y-4 mb-16">
-                            <h2 className="text-3xl sm:text-4xl font-medium tracking-tight text-foreground/90">What's Next</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                            <div className="space-y-2 text-center md:text-left">
-                                <h4 className="text-lg font-bold text-foreground/90">Strict Mode ELO</h4>
-                                <p className="text-sm text-muted-foreground leading-relaxed">
-                                    A new competitive mode where bonus points and faults actively dictate your ELO ranking, not just wins and losses.
-                                </p>
-                            </div>
-                            <div className="space-y-2 text-center md:text-left">
-                                <h4 className="text-lg font-bold text-foreground/90">League Tournaments</h4>
-                                <p className="text-sm text-muted-foreground leading-relaxed">
-                                    Organize brackets and round-robins directly from your club dashboard.
-                                </p>
-                            </div>
-                            <div className="space-y-2 text-center md:text-left">
-                                <h4 className="text-lg font-bold text-foreground/90">AI Match Insights</h4>
-                                <p className="text-sm text-muted-foreground leading-relaxed">
-                                    Automated play style summaries telling you when you peak and which opponents to avoid.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
-                            <div className="space-y-1">
-                                <h4 className="text-lg font-bold flex items-center justify-center sm:justify-start gap-2">
-                                    Have a feature idea?
-                                </h4>
-                                <p className="text-sm text-muted-foreground">Tell us what you want to see built next for your club.</p>
-                            </div>
-                            <Button variant="outline" className="shadow-none w-full sm:w-auto shrink-0 rounded border-border/50">
-                                Message Me on Slack
-                            </Button>
-                        </div>
-                    </div>
-                </section>
+                <FeaturesSection />
 
                 <section id="story" className="py-24 bg-muted/30">
                     <div className="max-w-5xl mx-auto px-6">
@@ -1048,13 +1062,10 @@ export default function Home() {
                 <div className="max-w-5xl mx-auto px-6">
                     <div className="border-t border-border/60 pt-8 flex flex-col sm:flex-row justify-between items-center gap-6">
                         <p className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase flex items-center gap-2">
-                            <div className="w-2 h-2 bg-foreground rounded-sm" />
+                            <span className="w-2 h-2 bg-foreground rounded-sm" />
                             Badminton Tracker
                         </p>
-                        <div className="flex items-center gap-8 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                            <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
-                            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
-                        </div>
+                        <FooterLegalLinks linkClassName="hover:text-foreground" />
                     </div>
                 </div>
             </footer>

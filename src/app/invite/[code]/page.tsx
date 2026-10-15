@@ -1,10 +1,11 @@
 "use client"
 import { fetchQuery } from "convex/nextjs";
 import { api } from "../../../../convex/_generated/api";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FooterLegalLinks } from "@/components/footer-legal-links";
 
 interface PageProps {
     params: Promise<{ code: string }>;
@@ -88,10 +89,7 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
                         <Link href="/" className="text-[10px] font-bold text-foreground/40 tracking-widest uppercase hover:text-primary transition-colors">
                             Badminton Tracker
                         </Link>
-                        <div className="flex items-center gap-8 text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                            <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
-                            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
-                        </div>
+                        <FooterLegalLinks linkClassName="hover:text-primary" />
                     </div>
                 </div>
             </footer>

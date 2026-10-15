@@ -8,9 +8,10 @@ export function VideoDialogUI({ className }: { className?: string }) {
     const [isOpen, setIsOpen] = useState(false)
     return (
         <>
-            <div
+            <button
+                type="button"
                 onClick={() => setIsOpen(true)}
-                className={cn("relative w-full max-w-md mx-auto aspect-video bg-background border border-border/50 rounded-xl overflow-hidden group cursor-pointer shadow-sm", className)}
+                className={cn("relative block w-full max-w-md mx-auto text-left aspect-video bg-background border border-border/50 rounded-xl overflow-hidden group cursor-pointer shadow-sm", className)}
             >
                 <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-muted/20 dark:from-primary/10 dark:to-muted/10" />
 
@@ -29,12 +30,14 @@ export function VideoDialogUI({ className }: { className?: string }) {
                         Watch Demo
                     </span>
                 </div>
-            </div>
+            </button>
 
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
                     <div className="relative w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-border/50 animate-in zoom-in-95 duration-200">
                         <button
+                            type="button"
+                            aria-label="Close video"
                             onClick={() => setIsOpen(false)}
                             className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
                         >
