@@ -29,7 +29,7 @@ export function Providers({ children }: { children: ReactNode }) {
         <ConvexProvider client={convex}>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="dark"
             enableSystem
             disableTransitionOnChange
           >

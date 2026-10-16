@@ -65,7 +65,7 @@ export const getInviteInfo = query({
       if (args.inviterId) {
         try {
           const inviter = await ctx.db.get(args.inviterId as any);
-          if (inviter) {
+          if (inviter && "name" in inviter) {
             inviterName = inviter.name;
           }
         } catch {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useMobile } from "@/hooks/use-mobile";
 import type { Match } from "@/types/match";
@@ -9,7 +9,7 @@ interface MatchCardProps {
   match: Match;
 }
 
-export function MatchCard({ match }: MatchCardProps) {
+export const MatchCard = memo(function MatchCard({ match }: MatchCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isMobile = useMobile();
 
@@ -32,7 +32,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
   return (
     <Card
-      className="rounded-none overflow-hidden border border-border cursor-pointer transition-colors hover:bg-muted/5 shadow-none w-full bg-background/10"
+      className="rounded-none overflow-hidden border border-border cursor-pointer transition-all hover:bg-muted/5 shadow-none w-full bg-background/10"
       onClick={() => setIsExpanded(!isExpanded)}
     >
       <div className="p-4 md:p-6">
@@ -102,9 +102,9 @@ export function MatchCard({ match }: MatchCardProps) {
                   Checkpoints
                 </h4>
                 <div className="space-y-2">
-                  {match.checkpoints?.map((checkpoint) => (
+                  {match.checkpoints?.map((checkpoint, idx) => (
                     <div
-                      key={checkpoint.timestamp}
+                      key={idx}
                       className="flex items-center justify-between text-sm border border-border rounded-md p-3 bg-muted/30"
                     >
                       <div className="flex gap-4">
@@ -134,4 +134,4 @@ export function MatchCard({ match }: MatchCardProps) {
       </div>
     </Card>
   );
-}
+});

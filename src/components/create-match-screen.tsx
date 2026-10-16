@@ -171,7 +171,11 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
-          <MatchForm onSubmit={handleMatchCreated} onCancel={closeScreen} />
+          <MatchForm
+            onSubmit={handleMatchCreated}
+            onCancel={closeScreen}
+            groupId={group._id}
+          />
         </div>
       </DrawerContent>
     </Drawer>

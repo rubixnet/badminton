@@ -38,7 +38,6 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   const liveGroup = useQuery(api.group.getGroupById, { groupId: group._id });
   const signalRefresh = useMutation(api.group.triggerRefresh);
 
-  /** Fetch one page and merge it into state. Never touches the loading flag. */
   const loadPage = useCallback(
     async (pageNum: number) => {
       try {
@@ -71,9 +70,6 @@ export default function HomeClient({ user, group }: HomeClientProps) {
   );
 
   const fetchMatches = useCallback(async (pageNum: number, isBackground = false) => {
-    // A background refresh must not touch the spinner, so the foreground path
-    // owns the flag: it is raised and lowered around the same `try`, and the
-    // lowering lives in `finally` so a throw can never strand it on.
     if (isBackground) {
       await loadPage(pageNum);
       return;
@@ -189,6 +185,7 @@ export default function HomeClient({ user, group }: HomeClientProps) {
             open={isOpen}
             onOpenChange={setIsOpen}
             onMatchCreated={handleMatchCreated}
+            groupId={group._id}
           />
         )}
       </div>

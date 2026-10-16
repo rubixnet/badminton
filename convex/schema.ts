@@ -9,6 +9,8 @@ export default defineSchema({
     isOnboarded: v.boolean(),
     groupId: v.optional(v.id("groups")),
     role: v.optional(v.union(v.literal("admin"), v.literal("member"))),
+    clubRole: v.optional(v.string()),
+    isExcluded: v.optional(v.boolean()),
   }).index("byWorkosId", ["workosId"])
     .index("by_groupId", ["groupId"]),
 
@@ -20,4 +22,5 @@ export default defineSchema({
     activeSheetId: v.string(),
     isPublic: v.optional(v.boolean()),
   }).index("byInviteCode", ["inviteCode"]),
+
 });

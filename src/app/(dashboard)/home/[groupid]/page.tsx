@@ -20,7 +20,7 @@ export default async function Page({ params }: PageProps) {
 
     if (!group) {
         if (token) {
-            redirect('/login?logout=group_not_found');
+            redirect('/api/auth/logout?reason=group_not_found');
         }
         redirect('/login?error=group_not_found');
     }
@@ -42,7 +42,7 @@ export default async function Page({ params }: PageProps) {
 
     if (!profile && !group.isPublic) {
         if (token) {
-            redirect('/login?logout=session_invalid');
+            redirect('/api/auth/logout?reason=session_invalid');
         }
 
         const inviteQuery = !group.isPublic && group.inviteCode ? `?invite=${group.inviteCode}` : '';

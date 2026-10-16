@@ -11,12 +11,14 @@ interface CreateMatchDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
     onMatchCreated: (match: Match) => void
+    groupId?: string
 }
 
 export function CreateMatchDialog({
     open, 
     onOpenChange,
-    onMatchCreated
+    onMatchCreated,
+    groupId
 }: CreateMatchDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -25,7 +27,7 @@ export function CreateMatchDialog({
                     <DialogTitle>Add Match</DialogTitle>
                 </DialogHeader> */}
                    <div className="p-6 pt-4">
-                    <MatchForm onSubmit={onMatchCreated} onCancel={() => onOpenChange(false)} />
+                    <MatchForm onSubmit={onMatchCreated} onCancel={() => onOpenChange(false)} groupId={groupId} />
                 </div>
             </DialogContent>
         </Dialog>
