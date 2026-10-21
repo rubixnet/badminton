@@ -99,6 +99,9 @@ export default function SettingsPage() {
   const updateMemberRole = useMutation(api.users.updateMemberRole);
   const removeMember = useMutation(api.users.removeMember);
   const updatePublicScores = useMutation(api.group.updatePublicScores);
+  // Bumps `groups.lastActivity` so every open device pulls fresh match rows
+  // instead of waiting for a manual reload.
+  const signalRefresh = useMutation(api.group.triggerRefresh);
 
   const [managingMember, setManagingMember] = useState<MemberRow | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<MemberRow | null>(null);
@@ -319,6 +322,13 @@ export default function SettingsPage() {
     window.location.href = "/api/auth/logout";
   };
 
+  // Shared broadcast after any match mutation here. Fire-and-forget so a
+  // Convex hiccup never masks the sheet write that already succeeded.
+  const broadcastMatchChange = () => {
+    if (!group?._id) return;
+    void signalRefresh({ groupId: group._id }).catch(() => undefined);
+  };
+
   const handleDeleteMatch = async (matchId: string) => {
     if (!isLeader) return;
     if (!confirm("Are you sure you want to delete this match record?")) return;
@@ -327,6 +337,7 @@ export default function SettingsPage() {
       if (res.ok) {
         setMatches((prev) => prev.filter((m) => m.id !== matchId));
         toast({ title: "Success", description: "Match deleted successfully." });
+        broadcastMatchChange();
       } else {
         throw new Error("Failed to delete");
       }
@@ -341,12 +352,21 @@ export default function SettingsPage() {
       const res = await fetch("/api/matches", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...updatedData, id: editingMatch.id }),
+        body: JSON.stringify({
+          ...updatedData,
+          id: editingMatch.id,
+          // The PUT route rewrites the whole row, so carry the group and author
+          // columns through — dropping them here would blank them in the sheet.
+          groupId: groupId,
+          userId: editingMatch.userId,
+          userName: editingMatch.userName,
+        }),
       });
       if (res.ok) {
         setMatches((prev) => prev.map((m) => (m.id === editingMatch.id ? { ...m, ...updatedData } : m)));
         setEditingMatch(null);
         toast({ title: "Success", description: "Match updated successfully." });
+        broadcastMatchChange();
       } else {
         throw new Error("Failed to update");
       }

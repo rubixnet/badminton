@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { X } from "lucide-react";
 import { MatchForm } from "@/components/match-form";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { useMobile } from "@/hooks/use-mobile";
+import type { Id } from "../../convex/_generated/dataModel";
 import type { Match } from "@/types/match";
 
 const CREATE_MATCH_EVENT = "badminton:match-created";
@@ -20,7 +23,7 @@ const EXIT_DURATION_MS = 280;
 interface CreateMatchScreenProps {
   overlay?: boolean;
   user: { _id: string; name: string };
-  group: { _id: string };
+  group: { _id: Id<"groups"> };
 }
 
 function getWinner(match: Match) {
@@ -62,6 +65,10 @@ function persistMatch(match: Match) {
 
 export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchScreenProps) {
   const router = useRouter();
+  // Fires on successful creation so every other open device sees the new
+  // match: HomeClient re-subscribes to `groups.lastActivity` and pulls fresh
+  // rows from the sheet.
+  const signalRefresh = useMutation(api.group.triggerRefresh);
   const isMobile = useMobile();
   const [open, setOpen] = useState(true);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -123,6 +130,9 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
       if (response.ok) {
         const savedMatch = (await response.json()) as Match;
         persistMatch(savedMatch);
+        // Real row exists now — tell other devices to pull it. Fire-and-forget:
+        // a hiccup here must not block closing the sheet.
+        void signalRefresh({ groupId: group._id }).catch(() => undefined);
       } else {
         persistMatch(fallbackMatch);
       }
