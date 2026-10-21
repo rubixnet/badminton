@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
@@ -20,10 +20,8 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Trophy,
   Medal,
-  Filter,
   ChevronDown,
   Users,
-  User,
   Calculator,
   Handshake,
   CalendarIcon,
@@ -56,17 +54,6 @@ import { MatchCalendar } from "@/components/match-calendar";
 import { cn, formatDateLabel } from "@/lib/utils";
 import { useStoredPreference } from "@/lib/stored-preferences";
 import { useGroupMatches } from "@/lib/queries";
-
-const PRESET_COLORS = [
-  { name: "Blue", value: "hsl(220, 70%, 50%)" },
-  { name: "Red", value: "hsl(0, 70%, 50%)" },
-  { name: "Green", value: "hsl(140, 60%, 45%)" },
-  { name: "Purple", value: "hsl(280, 65%, 55%)" },
-  { name: "Orange", value: "hsl(25, 90%, 50%)" },
-  { name: "Teal", value: "hsl(180, 60%, 45%)" },
-  { name: "Pink", value: "hsl(330, 70%, 55%)" },
-  { name: "Yellow", value: "hsl(45, 90%, 50%)" },
-];
 
 /** The four headline numbers above the chart grid. */
 function TopStats({
@@ -1686,262 +1673,248 @@ function AnalyticsLoadingSkeleton({ title }: { title: string }) {
 }
 
 /**
- * Tab switches plus the two view controls: chart colour mode and date range.
+ * The two view controls that share the analytics toolbar row: chart colour mode
+ * and date range.
  *
- * All three live together because they occupy the same toolbar row, and
- * grouping them keeps the page body to "tabs and cards".
+ * Grouped into one component because they always render side by side, which
+ * keeps the page body to "toolbar and cards".
  */
-function ChartColorPicker({
+function AnalyticsToolbar({
   colorModeContext,
+  timePeriod,
+  setTimePeriod,
+  customDateRange,
+  setCustomDateRange,
+  showCalendar,
+  setShowCalendar,
+  popoverOpen,
+  setPopoverOpen,
 }: {
   colorModeContext: ReturnType<typeof useColorMode>;
+  timePeriod: DateRangeOption;
+  setTimePeriod: (value: string) => void;
+  customDateRange: { from?: Date; to?: Date };
+  setCustomDateRange: (next: { from?: Date; to?: Date }) => void;
+  showCalendar: boolean;
+  setShowCalendar: (value: boolean) => void;
+  popoverOpen: boolean;
+  setPopoverOpen: (value: boolean) => void;
 }) {
+  const isMonochrome = colorModeContext.colorMode === "monochrome";
+  const isMulticolor = colorModeContext.colorMode === "multicolor";
+
+  // A preset closes the popover; "Custom Range" keeps it open so the calendar
+  // can be revealed in place, so the two paths stay deliberately separate.
+  const pickRange = (value: string) => {
+    setTimePeriod(value);
+    setShowCalendar(false);
+    setPopoverOpen(false);
+  };
+
   return (
-    <>
-          {/* Chart Colors Picker */}
-          <Popover>
-            <PopoverTrigger >
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0"
-                title="Chart Colors"
-              >
-                <Palette className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-2" align="end">
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground px-2 py-1">
-                  Chart Colors
-                </p>
-                <Button
-                  variant={
-                    colorModeContext.colorMode === "monochrome"
-                      ? "default"
-                      : "ghost"
-                  }
-                  size="sm"
-                  className="w-full justify-start gap-2"
-                  onClick={() =>
-                    colorModeContext?.setColorMode("monochrome")
-                  }
-                >
-                  {colorModeContext.colorMode === "monochrome" && (
-                    <Check className="h-4 w-4" />
-                  )}
-                  <span
-                    className={
-                      colorModeContext.colorMode === "monochrome"
-                        ? ""
-                        : "ml-6"
-                    }
-                  >
-                    {colorModeContext.colorMode === "monochrome" ? (
-                      <Check className="h-4 w-4" />
-                    ) : null}
-                  </span>
-                </Button>
-                <Button
-                  onClick={() =>
-                    colorModeContext?.setColorMode("multicolor")
-                  }
-                >
-                  {colorModeContext.colorMode === "multicolor" ? (
-                    <Check className="h-4 w-4" />
-                  ) : null}
-                  <span
-                    className={
-                      colorModeContext.colorMode === "multicolor"
-                        ? ""
-                        : "ml-6"
-                    }
-                  >
-                    Multicolor
-                  </span>
-                    {timePeriod === "30d" && "Last 30 Days"}
-                    {timePeriod === "60d" && "Last 60 Days"}
-                    {timePeriod === "365d" && "A Year"}
-                    {timePeriod === "all" && "All Time"}
-                    {timePeriod === "custom" &&
-                      customDateRange.from &&
-                      customDateRange.to &&
-                      `${formatDateLabel(customDateRange.from)} - ${formatDateLabel(customDateRange.to)}`}
-                    {timePeriod === "custom" &&
-                      (!customDateRange.from || !customDateRange.to) &&
-                      "Custom Range"}
-                  </span>
-                </div>
-                <ChevronDown className="h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-auto p-0 max-h-[90vh] overflow-y-auto"
-              align="end"
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {/* Chart Colors Picker */}
+      <Popover>
+        <PopoverTrigger>
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0"
+            title="Chart Colors"
+          >
+            <Palette className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-2" align="end">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground px-2 py-1">
+              Chart Colors
+            </p>
+            <Button
+              variant={isMonochrome ? "default" : "ghost"}
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={() => colorModeContext.setColorMode("monochrome")}
             >
-              {!showCalendar || timePeriod !== "custom" ? (
-                <div className="grid p-1">
-                  <Button
-                    variant={timePeriod === "today" ? "secondary" : "ghost"}
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("today");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    Today
-                  </Button>
-                  <Button
-                    variant={
-                      timePeriod === "yesterday" ? "secondary" : "ghost"
-                    }
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("yesterday");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    Yesterday
-                  </Button>
-                  <Button
-                    variant={timePeriod === "7d" ? "secondary" : "ghost"}
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("7d");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    Last 7 Days
-                  </Button>
-                  <Button
-                    variant={timePeriod === "15d" ? "secondary" : "ghost"}
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("15d");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    Last 15 Days
-                  </Button>
-                  <Button
-                    variant={
-                      timePeriod === "this-month" ? "secondary" : "ghost"
-                    }
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("this-month");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    This Month
-                  </Button>
-                  <Button
-                    variant={
-                      timePeriod === "last-month" ? "secondary" : "ghost"
-                    }
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("last-month");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    Last Month
-                  </Button>
-                  <Button
-                    variant={timePeriod === "30d" ? "secondary" : "ghost"}
-                    className="justify-start font-normal"
-                    onClick={() => {
+              {isMonochrome ? <Check className="h-4 w-4" /> : null}
+              <span className={isMonochrome ? "" : "ml-6"}>Monochrome</span>
+            </Button>
+            <Button
+              variant={isMulticolor ? "default" : "ghost"}
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={() => colorModeContext.setColorMode("multicolor")}
+            >
+              {isMulticolor ? <Check className="h-4 w-4" /> : null}
+              <span className={isMulticolor ? "" : "ml-6"}>Multicolor</span>
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Date Range Picker */}
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <PopoverTrigger>
+          <Button
+            variant="outline"
+            className="shrink-0 justify-between gap-2"
+          >
+            <div>
+              <span>
+                {timePeriod === "today" && "Today"}
+                {timePeriod === "yesterday" && "Yesterday"}
+                {timePeriod === "7d" && "Last 7 Days"}
+                {timePeriod === "15d" && "Last 15 Days"}
+                {timePeriod === "this-month" && "This Month"}
+                {timePeriod === "last-month" && "Last Month"}
+                {timePeriod === "30d" && "Last 30 Days"}
+                {timePeriod === "60d" && "Last 60 Days"}
+                {timePeriod === "365d" && "A Year"}
+                {timePeriod === "all" && "All Time"}
+                {timePeriod === "custom" &&
+                  customDateRange.from &&
+                  customDateRange.to &&
+                  `${formatDateLabel(customDateRange.from)} - ${formatDateLabel(customDateRange.to)}`}
+                {timePeriod === "custom" &&
+                  (!customDateRange.from || !customDateRange.to) &&
+                  "Custom Range"}
+              </span>
+            </div>
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-auto p-0 max-h-[90vh] overflow-y-auto"
+          align="end"
+        >
+          {!showCalendar || timePeriod !== "custom" ? (
+            <div className="grid p-1">
+              <Button
+                variant={timePeriod === "today" ? "secondary" : "ghost"}
+                className="justify-start font-normal"
+                onClick={() => pickRange("today")}
+              >
+                Today
+              </Button>
+              <Button
+                variant={
+                  timePeriod === "yesterday" ? "secondary" : "ghost"
+                }
+                className="justify-start font-normal"
+                onClick={() => pickRange("yesterday")}
+              >
+                Yesterday
+              </Button>
+              <Button
+                variant={timePeriod === "7d" ? "secondary" : "ghost"}
+                className="justify-start font-normal"
+                onClick={() => pickRange("7d")}
+              >
+                Last 7 Days
+              </Button>
+              <Button
+                variant={timePeriod === "15d" ? "secondary" : "ghost"}
+                className="justify-start font-normal"
+                onClick={() => pickRange("15d")}
+              >
+                Last 15 Days
+              </Button>
+              <Button
+                variant={
+                  timePeriod === "this-month" ? "secondary" : "ghost"
+                }
+                className="justify-start font-normal"
+                onClick={() => pickRange("this-month")}
+              >
+                This Month
+              </Button>
+              <Button
+                variant={
+                  timePeriod === "last-month" ? "secondary" : "ghost"
+                }
+                className="justify-start font-normal"
+                onClick={() => pickRange("last-month")}
+              >
+                Last Month
+              </Button>
+              <Button
+                variant={timePeriod === "30d" ? "secondary" : "ghost"}
+                className="justify-start font-normal"
+                onClick={() => pickRange("30d")}
+              >
+                Last 30 Days
+              </Button>
+              <Button
+                variant={timePeriod === "60d" ? "secondary" : "ghost"}
+                className="justify-start font-normal"
+                onClick={() => pickRange("60d")}
+              >
+                Last 60 Days
+              </Button>
+              <Button
+                variant={timePeriod === "365d" ? "secondary" : "ghost"}
+                className="justify-start font-normal"
+                onClick={() => pickRange("365d")}
+              >
+                A Year
+              </Button>
+              <div className="border-t my-1" />
+              <Button
+                variant={timePeriod === "all" ? "secondary" : "ghost"}
+                className="justify-start font-normal"
+                onClick={() => pickRange("all")}
+              >
+                All Time
+              </Button>
+              <div className="border-t my-1" />
+              <Button
+                variant={timePeriod === "custom" ? "secondary" : "ghost"}
+                className="justify-start font-normal gap-2"
+                onClick={() => {
+                  setPopoverOpen(true);
+                  setTimePeriod("custom");
+                  setShowCalendar(true);
+                }}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                Custom Range
+              </Button>
+            </div>
+          ) : (
+            <div className="p-3 max-w-full">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium">Select Date Range</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowCalendar(false);
+                    if (!customDateRange.from || !customDateRange.to) {
                       setTimePeriod("30d");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    Last 30 Days
-                  </Button>
-                  <Button
-                    variant={timePeriod === "60d" ? "secondary" : "ghost"}
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("60d");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    Last 60 Days
-                  </Button>
-                  <Button
-                    variant={timePeriod === "365d" ? "secondary" : "ghost"}
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("365d");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    A Year
-                  </Button>
-                  <div className="border-t my-1" />
-                  <Button
-                    variant={timePeriod === "all" ? "secondary" : "ghost"}
-                    className="justify-start font-normal"
-                    onClick={() => {
-                      setTimePeriod("all");
-                      setShowCalendar(false);
-                    }}
-                  >
-                    All Time
-                  </Button>
-                  <div className="border-t my-1" />
-                  <Button
-                    variant={timePeriod === "custom" ? "secondary" : "ghost"}
-                    className="justify-start font-normal gap-2"
-                    onClick={() => {
-                      setShowCalendar(true);
-                      setTimePeriod("custom");
-                    }}
-                  >
-                    <CalendarIcon className="h-4 w-4" />
-                    Custom Range
-                  </Button>
-                </div>
-              ) : (
-                <div className="p-3 max-w-full">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium">Select Date Range</h4>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowCalendar(false);
-                        if (!customDateRange.from || !customDateRange.to) {
-                          setTimePeriod("30d");
-                        }
-                      }}
-                    >
-                      ← Back
-                    </Button>
-                  </div>
-                  <DateRangePicker
-                    from={customDateRange.from}
-                    to={customDateRange.to}
-                    onSelect={(next) => {
-                      setCustomDateRange(next);
-                      if (next.from && next.to) {
-                        setTimePeriod("custom");
-                        setShowCalendar(false);
-                      }
-                    }}
-                  />
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-    </>
+                    }
+                  }}
+                >
+                  ← Back
+                </Button>
+              </div>
+              <DateRangePicker
+                from={customDateRange.from}
+                to={customDateRange.to}
+                onSelect={(next) => {
+                  setCustomDateRange(next);
+                  if (next.from && next.to) {
+                    pickRange("custom");
+                  }
+                }}
+              />
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
 
-    </>
-  );
-}
 
 export default function AnalyticsPage() {
   const router = useRouter();
