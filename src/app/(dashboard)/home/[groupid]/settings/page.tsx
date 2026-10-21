@@ -685,32 +685,34 @@ export default function SettingsPage() {
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0 rounded-md text-muted-foreground hover:text-foreground transition-transform"
+                                className="h-9 w-9 sm:h-7 sm:w-7 p-0 rounded-md text-muted-foreground border border-border/70 bg-muted/40 sm:border-0 sm:bg-transparent hover:text-foreground transition-colors"
                                 onClick={() => setEditingMatch(match)}
                               >
-                                <Edit3 className="h-3.5 w-3.5" />
+                                <Edit3 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                <span className="sr-only">Edit match</span>
                               </Button>
                               {isLeader && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 w-7 p-0 rounded-md text-muted-foreground hover:text-foreground transition-transform"
+                                  className="h-9 w-9 sm:h-7 sm:w-7 p-0 rounded-md text-muted-foreground border border-border/70 bg-muted/40 sm:border-0 sm:bg-transparent hover:text-[var(--destructive)] transition-colors"
                                   onClick={() => handleDeleteMatch(match.id)}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                                  <span className="sr-only">Delete match</span>
                                 </Button>
                               )}
                             </div>
                           </div>
-                          <div className=" items-center gap-2 sm:gap-4 font-semibold text-xs sm:text-[13px]">
-                            <div className={cn(" text-left", match.team1.score > match.team2.score ? "text-foreground font-bold" : "text-muted-foreground")}>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 font-semibold text-xs sm:text-[13px]">
+                            <div className={cn("sm:text-left", match.team1.score > match.team2.score ? "text-foreground font-bold" : "text-muted-foreground")}>
                               {match.team1.players.map(p => p.name).join(" & ")}
                             </div>
-                            <div className={cn(" text-right", match.team2.score > match.team1.score ? "text-foreground font-bold" : "text-muted-foreground")}>
+                            <div className={cn("sm:text-right", match.team2.score > match.team1.score ? "text-foreground font-bold" : "text-muted-foreground")}>
                               {match.team2.players.map(p => p.name).join(" & ")}
                             </div>
                           </div>
