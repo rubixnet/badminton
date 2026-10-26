@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
 import {
@@ -39,6 +39,7 @@ interface MatchRecord {
 
 interface NavbarProps {
   title?: string;
+  titleAction?: ReactNode;
   onCreateMatch?: () => void;
   isAuthenticated?: boolean;
 }
@@ -299,6 +300,7 @@ type TourController = ReturnType<typeof useTour>;
 /** Desktop nav bar: tour trigger, primary links, profiles popover, create button. */
 function DesktopNav({
   title,
+  titleAction,
   groupId,
   pathname,
   players,
@@ -309,6 +311,7 @@ function DesktopNav({
   tour,
 }: {
   title?: string;
+  titleAction?: ReactNode;
   groupId: string;
   pathname: string;
   players: string[];
@@ -326,9 +329,9 @@ function DesktopNav({
 
   return (
     <div className="flex items-center justify-between h-[76px]">
-      <div className="flex items-center shrink-0 gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {title ? (
-          <h1 className="text-lg md:text-xl lg:text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="min-w-0 truncate text-lg md:text-xl lg:text-2xl font-bold tracking-tight text-foreground">
             {title}
           </h1>
         ) : (
@@ -339,6 +342,7 @@ function DesktopNav({
             Badminton <span className="text-primary">Tracker</span>
           </Link>
         )}
+        {titleAction}
       </div>
 
           <div className="hidden sm:flex items-center gap-2 lg:gap-6 h-full overflow-x-auto no-scrollbar">
@@ -671,7 +675,7 @@ function useHideOnScroll() {
   return isVisible;
 }
 
-export function Navbar({ title, onCreateMatch, isAuthenticated }: NavbarProps) {
+export function Navbar({ title, titleAction, onCreateMatch, isAuthenticated }: NavbarProps) {
   const pathname = usePathname();
   const params = useParams();
   const router = useRouter();
@@ -723,6 +727,7 @@ export function Navbar({ title, onCreateMatch, isAuthenticated }: NavbarProps) {
         <div className="md:container md:max-w-6xl md:mx-auto px-4 md:px-6">
           <DesktopNav
             title={title}
+            titleAction={titleAction}
             groupId={groupId}
             pathname={pathname}
             players={allPlayers}

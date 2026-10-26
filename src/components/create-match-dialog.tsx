@@ -3,6 +3,8 @@
 import {
     Dialog,
     DialogContent,
+    DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog'
 import { MatchForm } from '@/components/match-form'
 import type { Match } from '@/types/match'
@@ -23,6 +25,8 @@ export function CreateMatchDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="p-0 max-h-[90vh] overflow-y-auto">
+                <DialogTitle className="sr-only">Record a match</DialogTitle>
+                <DialogDescription className="sr-only">Enter the players and final scores.</DialogDescription>
                 {/* <DialogHeader className="p-6 pb-0">
                     <DialogTitle>Add Match</DialogTitle>
                 </DialogHeader> */}

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
+import { useQueryClient } from "@tanstack/react-query";
+import { groupMatchesKey } from "@/lib/queries";
 import { api } from "../../convex/_generated/api";
 import { X } from "lucide-react";
 import { MatchForm } from "@/components/match-form";
@@ -24,22 +26,6 @@ interface CreateMatchScreenProps {
   overlay?: boolean;
   user: { _id: string; name: string };
   group: { _id: Id<"groups"> };
-}
-
-function getWinner(match: Match) {
-  if (match.team1.score > match.team2.score) {
-    return "team1" as const;
-  }
-
-  return "team2" as const;
-}
-
-function createLocalMatch(match: Match): Match {
-  return {
-    ...match,
-    id: match.id || `local_${Date.now()}`,
-    winner: match.winner ?? getWinner(match),
-  };
 }
 
 function persistMatch(match: Match) {
@@ -65,6 +51,7 @@ function persistMatch(match: Match) {
 
 export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchScreenProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   // Fires on successful creation so every other open device sees the new
   // match: HomeClient re-subscribes to `groups.lastActivity` and pulls fresh
   // rows from the sheet.
@@ -88,9 +75,9 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
         return;
       }
 
-      router.replace("/");
+      router.replace(`/home/${group._id}`);
     }, EXIT_DURATION_MS);
-  }, [overlay, router]);
+  }, [overlay, router, group._id]);
 
   useEffect(() => {
     return () => {
@@ -113,8 +100,6 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
   };
 
   const handleMatchCreated = async (submittedMatch: Match) => {
-    const fallbackMatch = createLocalMatch(submittedMatch);
-
     try {
       const response = await fetch("/api/matches", {
         method: "POST",
@@ -130,15 +115,16 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
       if (response.ok) {
         const savedMatch = (await response.json()) as Match;
         persistMatch(savedMatch);
+        void queryClient.invalidateQueries({ queryKey: groupMatchesKey(group._id) });
         // Real row exists now — tell other devices to pull it. Fire-and-forget:
         // a hiccup here must not block closing the sheet.
         void signalRefresh({ groupId: group._id }).catch(() => undefined);
       } else {
-        persistMatch(fallbackMatch);
+        throw new Error("Unable to save match. Please try again.");
       }
     } catch (error) {
       console.error("Error saving match:", error);
-      persistMatch(fallbackMatch);
+      throw error;
     }
 
     closeScreen();

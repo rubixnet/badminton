@@ -162,15 +162,15 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
               handleCardClick();
             }
           }}
-          className="bg-linear-to-r from-primary/10 via-background to-background border-primary/20 cursor-pointer hover:border-primary/50 transition-colors group"
+          className="rounded-lg border-border bg-background py-0 shadow-none cursor-pointer hover:bg-muted/20 transition-colors group"
         >
-          <CardContent className="p-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <Trophy className="h-6 w-6 text-primary" />
+          <CardContent className="p-4 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="size-9 shrink-0 rounded-md bg-muted flex items-center justify-center">
+                <Trophy className="size-4 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Player of the Day</h3>
+                <h3 className="font-medium text-sm">Player of the Day</h3>
                 <p className="text-muted-foreground text-sm group-hover:text-primary transition-colors">
                   {revealed
                     ? playerName
@@ -182,7 +182,7 @@ export function PlayerOfTheDay({ playerName }: PlayerOfTheDayProps) {
             </div>
             <Button
               variant="ghost"
-              className="group-hover:translate-x-1 transition-transform"
+              className="shrink-0"
             >
               {revealed ? "Details" : "Reveal"}
               <ChevronDown className="ml-2 h-4 w-4 -rotate-90" />

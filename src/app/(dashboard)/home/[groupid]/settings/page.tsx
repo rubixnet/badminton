@@ -313,13 +313,24 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Logout failed");
+    } catch {
+      toast({ title: "Unable to sign out", description: "Please check your connection and try again.", variant: "destructive" });
+      return;
+    }
+
     try {
       sessionStorage.clear();
     } catch (_e) {
       void _e;
     }
-    window.location.href = "/api/auth/logout";
+    window.location.href = "/login?logout=success";
   };
 
   // Shared broadcast after any match mutation here. Fire-and-forget so a
@@ -636,7 +647,7 @@ export default function SettingsPage() {
           </Card>
 
           {canEditScores && (
-            <Card className="rounded-2xl border-border/50 bg-card shadow-sm">
+            <Card className="-mx-4 min-w-0 rounded-none border-x-0 border-border/50 bg-card shadow-sm sm:mx-0 sm:rounded-2xl sm:border-x">
               <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
@@ -652,8 +663,8 @@ export default function SettingsPage() {
                   </Badge>
                 )}
               </CardHeader>
-              <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-                <div className="flex flex-col border border-border/50 rounded-xl bg-background overflow-hidden">
+              <CardContent className="p-0">
+                <div className="flex flex-col border-y border-border/50 bg-background overflow-hidden">
                   {isMatchesLoading ? (
                     <div className="p-10 flex flex-col items-center justify-center space-y-4">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
@@ -671,7 +682,7 @@ export default function SettingsPage() {
                   ) : (
                     <>
                       {matches.slice(0, visibleMatchesCount).map((match) => (
-                        <div key={match.id} className="flex flex-col p-4 border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
+                        <div key={match.id} className="flex min-w-0 flex-col px-0 py-4 sm:p-4 border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors group">
                           <div className="flex items-center justify-between mb-2">
                             <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest tabular-nums">
                               {new Date(match.createdAt).toLocaleDateString()}

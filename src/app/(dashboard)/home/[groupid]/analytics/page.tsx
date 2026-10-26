@@ -12,7 +12,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
@@ -223,8 +224,8 @@ function StatsGrid({
   });
 
   return (
-    <div className="space-y-4  animate-in fade-in duration-500">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <TopStats
           title={title}
           totalMatches={totalMatches}
@@ -669,7 +670,7 @@ function TrendAndImpactCharts({
   )}
 
   <Card>
-    <CardHeader className="text-center">
+    <CardHeader>
       <CardTitle>Match Activity</CardTitle>
       <CardDescription>
         Your badminton activity over the past year
@@ -1026,9 +1027,9 @@ function DuoStatsGrid({
   });
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
+    <div className="space-y-4">
       {/* Top Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Duos</CardTitle>
@@ -1712,18 +1713,20 @@ function AnalyticsToolbar({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+      <TabsList aria-label="Match format" className="mr-auto">
+        <TabsTrigger value="doubles">Doubles</TabsTrigger>
+        <TabsTrigger value="singles">Singles</TabsTrigger>
+        <TabsTrigger value="duos">Duos</TabsTrigger>
+      </TabsList>
       {/* Chart Colors Picker */}
       <Popover>
-        <PopoverTrigger>
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0"
-            title="Chart Colors"
-          >
+        <PopoverTrigger
+          aria-label="Chart colors"
+          title="Chart Colors"
+          render={<Button variant="outline" size="icon" className="shrink-0" />}
+        >
             <Palette className="h-4 w-4" />
-          </Button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-2" align="end">
           <div className="space-y-1">
@@ -1754,11 +1757,7 @@ function AnalyticsToolbar({
 
       {/* Date Range Picker */}
       <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger>
-          <Button
-            variant="outline"
-            className="shrink-0 justify-between gap-2"
-          >
+        <PopoverTrigger render={<Button variant="outline" className="shrink-0 justify-between gap-2" />}>
             <div>
               <span>
                 {timePeriod === "today" && "Today"}
@@ -1781,7 +1780,6 @@ function AnalyticsToolbar({
               </span>
             </div>
             <ChevronDown className="h-4 w-4 opacity-50" />
-          </Button>
         </PopoverTrigger>
         <PopoverContent
           className="w-auto p-0 max-h-[90vh] overflow-y-auto"
@@ -1918,6 +1916,7 @@ function AnalyticsToolbar({
 
 export default function AnalyticsPage() {
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
   const params = useParams();
   const groupId = params.groupid as string;
 
@@ -1998,21 +1997,23 @@ export default function AnalyticsPage() {
     return <AnalyticsLoadingSkeleton title={title} />;
   }
 
+  if (matchesQuery.isError) {
+    return <div className="min-h-screen bg-background"><Navbar title={title} /><main className="mx-auto max-w-6xl px-4 py-12"><div role="alert" className="space-y-3"><p className="text-sm text-muted-foreground">Unable to load analytics. Please try again.</p><Button variant="outline" onClick={() => void matchesQuery.refetch()}>Retry</Button></div></main></div>;
+  }
+
   if (!stats)
     return <div className="p-8 text-center">No analytics data available</div>;
 
-  const isDark =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
+  const isDark = resolvedTheme === "dark";
 
   // Replaced by <StatsGrid/> below.
 
 
   return (
-    <div className="min-h-screen bg-background overflow-x-auto">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar title={title} />
 
-      <div className="max-w-6xl mx-auto p-2 md:p-6 pt-0 md:pt-2 space-y-4 mt-6">
+      <div className="mx-auto max-w-6xl px-3 py-4 md:px-6 md:py-6 space-y-5 pb-24 [&_[data-slot=card]]:rounded-lg [&_[data-slot=card]]:shadow-none [&_[data-slot=card-title]]:text-sm [&_[data-slot=card-title]]:font-medium">
         <PlayerOfTheDay playerName={stats.playerOfTheDay} />
 
         {/* Controls & Tabs */}
