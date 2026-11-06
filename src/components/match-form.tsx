@@ -689,10 +689,10 @@ export function MatchForm({ onSubmit, initialData, onCancel, groupId }: MatchFor
       await onSubmit(matchData);
       // Saved — drop the local draft so it never shows back.
       clearMatchDraft();
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to process match data.",
+        description: error instanceof Error ? error.message : "Unable to save the score.",
         variant: "destructive",
       });
     } finally {

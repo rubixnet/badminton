@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGoogleSheetsClient } from "@/lib/google-sheets";
+import { invalidateMatchSnapshot } from "@/lib/match-store";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = "Sheet1";
@@ -30,6 +31,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       }
     });
 
+    invalidateMatchSnapshot();
     return NextResponse.json({ success: true });
   } catch { return NextResponse.json({ error: "Delete failed" }, { status: 500 }); }
 }
@@ -68,6 +70,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       requestBody: { values },
     });
 
+    invalidateMatchSnapshot();
     return NextResponse.json({ success: true });
   } catch { return NextResponse.json({ error: "Update failed" }, { status: 500 }); }
 }

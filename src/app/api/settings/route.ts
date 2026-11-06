@@ -41,6 +41,7 @@ export async function GET() {
       bonusEnabled: settings.bonusEnabled ?? false,
     });
   } catch {
+    return NextResponse.json({ error: "Could not load score settings." }, { status: 502 });
   }
 }
 

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { MatchList } from "@/components/match-list";
-import { CreateMatchDialog } from "@/components/create-match-dialog";
 import { useMobile } from "@/hooks/use-mobile";
 import { Navbar } from "@/components/navbar";
 import { ArrowUpRight, Filter, RotateCw } from "lucide-react";
@@ -15,6 +15,11 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import type { Match } from "@/types/match";
 import type { Id } from "../../../../../convex/_generated/dataModel";
+
+const CreateMatchDialog = dynamic(
+  () => import("@/components/create-match-dialog").then((module) => module.CreateMatchDialog),
+  { ssr: false },
+);
 
 interface HomeClientProps {
   user: {
@@ -146,7 +151,8 @@ export default function HomeClient({ user, group }: HomeClientProps) {
         void queryClient.invalidateQueries({ queryKey: groupMatchesKey(group._id) });
         void signalRefresh({ groupId: group._id }).catch(console.error);
       } else {
-        throw new Error("Sync Failed");
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? "Unable to save the score. Please try again.");
       }
 
     } catch (error) {
@@ -223,7 +229,7 @@ export default function HomeClient({ user, group }: HomeClientProps) {
           )}
         </main>
 
-        {canCreateMatch && !isMobile && (
+        {canCreateMatch && !isMobile && isOpen && (
           <CreateMatchDialog
             open={isOpen}
             onOpenChange={setIsOpen}

@@ -120,7 +120,8 @@ export function CreateMatchScreen({ overlay = false, user, group }: CreateMatchS
         // a hiccup here must not block closing the sheet.
         void signalRefresh({ groupId: group._id }).catch(() => undefined);
       } else {
-        throw new Error("Unable to save match. Please try again.");
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? "Unable to save the score. Please try again.");
       }
     } catch (error) {
       console.error("Error saving match:", error);
